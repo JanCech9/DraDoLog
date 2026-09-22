@@ -1,4 +1,4 @@
-// 1 zlatý = 10 stříbrných = 100 měďáků. Everything is stored in měďáky.
+// 1 zlatý = 10 stříbrných = 100 měďáků. Vše je počítáno v měďácích.
 
 export const MD_PER_ST = 10;
 export const MD_PER_ZL = 100;
