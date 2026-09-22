@@ -48,6 +48,8 @@ export const ITEM_KIND_LABELS: Record<ItemKind, string> = {
 interface ItemBase {
   id: string;
   name: string;
+  /** Set when the item came from the catalog; used to merge stackable rows. */
+  templateId?: string;
   /** Weight in the unit your table uses. See WEIGHT_UNIT in rules/tables.ts. */
   weight: number;
   qty: number;

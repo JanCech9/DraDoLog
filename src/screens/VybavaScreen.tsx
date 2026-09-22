@@ -4,6 +4,7 @@ import { derive } from '../rules/derived';
 import { WEIGHT_UNIT, ZATIZENI_LABELS } from '../rules/tables';
 import { formatMoney, toMedaky } from '../rules/money';
 import { ITEM_KIND_LABELS, type Item, type ItemKind } from '../types/character';
+import { CATALOG } from '../data/catalog';
 
 const emptyForm = {
   name: '',
@@ -17,10 +18,14 @@ const emptyForm = {
 };
 
 export function VybavaScreen({ store }: { store: CharacterStore }) {
-  const { character, addItem, removeItem, setQty, toggleEquipped, adjustMoney } = store;
+  const { character, addItem, buyItem, removeItem, setQty, toggleEquipped, adjustMoney } = store;
   const [form, setForm] = useState(emptyForm);
   const d = derive(character);
   const fill = Math.min(100, d.nosnost ? (d.weight / d.nosnost) * 100 : 100);
+
+  const [query, setQuery] = useState('');
+  const [pay, setPay] = useState(true);
+  const results = CATALOG.filter((t) => t.name.toLowerCase().includes(query.toLowerCase()));
 
   function submit() {
     if (!form.name.trim()) return;
@@ -101,6 +106,41 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
             )}
             <button type="button" className="chip chip--quiet" onClick={() => removeItem(item.id)}>
               Zahodit
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <h2 className="heading">Obchod</h2>
+      <div className="field-row">
+        <label className="field field--wide">
+          <span>Hledat</span>
+          <input value={query} placeholder="meč, lano…" onChange={(e) => setQuery(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Platit</span>
+          <input type="checkbox" checked={pay} onChange={(e) => setPay(e.target.checked)} />
+        </label>
+      </div>
+      <ul className="items">
+        {results.map((t) => (
+          <li key={t.templateId} className="item">
+            <span className="item__name">{t.name}</span>
+            <span className="item__meta">{formatMoney(t.price)} · {t.weight} {WEIGHT_UNIT}</span>
+            <button
+              type="button"
+              className="chip"
+              disabled={pay && character.money < t.price}
+              onClick={() => buyItem(t, 1, pay)}
+            >
+              {pay ? 'Koupit' : 'Přidat'}
+            </button>
+            <button
+              type="button"
+              className="chip chip--quiet"
+              onClick={() => setForm({ ...emptyForm, ...t, qty: 1 })}
+            >
+              Upravit
             </button>
           </li>
         ))}

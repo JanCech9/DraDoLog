@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Character, Item, LogKind } from '../types/character';
+import { fromTemplate, type ItemTemplate } from '../data/catalog';
 import { createCharacter, newId } from './defaultCharacter';
 
 const STORAGE_KEY = 'drd-sheet:character';
@@ -91,6 +92,20 @@ export function useCharacter() {
     [update],
   );
 
+  const buyItem = useCallback((t: ItemTemplate, qty = 1, pay = true) => {
+    update((draft) => {
+      const cost = t.price * qty;
+      if (pay) {
+        if (draft.money < cost) return;
+        draft.money -= cost;
+        draft.log.push({ id: newId(), ts: Date.now(), kind: 'money', delta: -cost, text: `Koupeno: ${qty}× ${t.name}` });
+      }
+      const stack = t.stackable ? draft.inventory.find((i) => i.templateId === t.templateId) : undefined;
+      if (stack) stack.qty += qty;
+      else draft.inventory.push(fromTemplate(t, qty));
+    });
+  }, [update]);
+
   const removeItem = useCallback(
     (id: string) =>
       update((draft) => {
@@ -161,6 +176,7 @@ export function useCharacter() {
     adjustXp,
     adjustMoney,
     addItem,
+    buyItem,
     removeItem,
     setQty,
     toggleEquipped,
