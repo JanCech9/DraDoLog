@@ -1,13 +1,15 @@
 import type { CharacterStore } from '../state/useCharacter';
 import { derive } from '../rules/derived';
-import { MAGIC_POVOLANI } from '../types/character';
+import { RANGE_UNIT } from '../rules/tables';
+import { DOSTREL_LABELS, DOSTREL_ORDER, MAGIC_POVOLANI } from '../types/character';
 
 const timeFormat = new Intl.DateTimeFormat('cs-CZ', { hour: '2-digit', minute: '2-digit' });
 
 export function BojScreen({ store }: { store: CharacterStore }) {
-  const { character, update, adjustHp, adjustMag, undoLast } = store;
+  const { character, update, adjustHp, adjustMag, shoot, undoLast } = store;
   const d = derive(character);
   const isCaster = MAGIC_POVOLANI.includes(character.identity.povolani);
+  const { strelna, ucStrelba, munice } = d;
 
   return (
     <div className="screen">
@@ -58,6 +60,34 @@ export function BojScreen({ store }: { store: CharacterStore }) {
         {d.zbran ? `V ruce: ${d.zbran.name}` : 'Bez zbraně'}
         {d.zbroj ? ` · na sobě: ${d.zbroj.name}` : ' · bez zbroje'}
       </p>
+
+      <h2 className="heading">Střelba</h2>
+      {strelna && ucStrelba ? (
+        <>
+          <ul className="combat">
+            {DOSTREL_ORDER.map((k, i) => (
+              <li key={k}>
+                <span className="note">
+                  {DOSTREL_LABELS[k]} do {strelna.dostrel[i]} {RANGE_UNIT}
+                </span>
+                <strong>{ucStrelba[k]}</strong>
+              </li>
+            ))}
+          </ul>
+          <p className="note">Střelná zbraň: {strelna.name}</p>
+          {munice !== undefined && (
+            <div className="counter">
+              <strong className="counter__value">{munice}</strong>
+              <span className="note">kusů munice</span>
+              <button type="button" disabled={munice === 0} onClick={shoot}>
+                Vystřelit
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="note">Nemáš nasazenou střelnou zbraň. Nasaď ji ve Výbavě.</p>
+      )}
 
       {isCaster && (
         <>

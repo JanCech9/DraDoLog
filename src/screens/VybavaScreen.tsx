@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import type { CharacterStore } from '../state/useCharacter';
 import { derive } from '../rules/derived';
-import { WEIGHT_UNIT, ZATIZENI_LABELS } from '../rules/tables';
+import { RANGE_UNIT, WEIGHT_UNIT, ZATIZENI_LABELS } from '../rules/tables';
 import { formatMoney, toMedaky } from '../rules/money';
-import { ITEM_KIND_LABELS, type Item, type ItemKind } from '../types/character';
-import { CATALOG } from '../data/catalog';
+import {
+  DOSTREL_LABELS,
+  DOSTREL_ORDER,
+  ITEM_KIND_LABELS,
+  type Item,
+  type ItemKind,
+} from '../types/character';
+import { AMMO_TEMPLATES, CATALOG } from '../data/catalog';
 
 const emptyForm = {
   name: '',
@@ -15,6 +21,8 @@ const emptyForm = {
   obrana: 0,
   iniciativa: 0,
   ochrana: 0,
+  dostrel: [0, 0, 0] as [number, number, number],
+  municeId: '',
 };
 
 export function VybavaScreen({ store }: { store: CharacterStore }) {
@@ -39,12 +47,27 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
         obrana: form.obrana,
         iniciativa: form.iniciativa,
       } as Omit<Item, 'id'>);
+    } else if (form.kind === 'strelna') {
+      addItem({
+        ...base,
+        kind: 'strelna',
+        equipped: false,
+        utocnost: form.utocnost,
+        dostrel: form.dostrel,
+        municeId: form.municeId || undefined,
+      } as Omit<Item, 'id'>);
     } else if (form.kind === 'zbroj') {
       addItem({ ...base, kind: 'zbroj', equipped: false, ochrana: form.ochrana } as Omit<Item, 'id'>);
     } else {
       addItem({ ...base, kind: 'ostatni' } as Omit<Item, 'id'>);
     }
     setForm(emptyForm);
+  }
+
+  function setDostrel(index: number, value: number) {
+    const next = [...form.dostrel] as [number, number, number];
+    next[index] = value;
+    setForm({ ...form, dostrel: next });
   }
 
   return (
@@ -85,6 +108,8 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
               <span className="note">
                 {ITEM_KIND_LABELS[item.kind]} · {item.weight * item.qty} {WEIGHT_UNIT}
                 {item.kind === 'zbran' && ` · út ${item.utocnost} / obr ${item.obrana}`}
+                {item.kind === 'strelna' &&
+                  ` · út ${item.utocnost} · dostřel ${item.dostrel.join('/')} ${RANGE_UNIT}`}
                 {item.kind === 'zbroj' && ` · ochrana ${item.ochrana}`}
               </span>
             </div>
@@ -115,7 +140,7 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
       <div className="field-row">
         <label className="field field--wide">
           <span>Hledat</span>
-          <input value={query} placeholder="meč, lano…" onChange={(e) => setQuery(e.target.value)} />
+          <input value={query} placeholder="meč, luk, lano…" onChange={(e) => setQuery(e.target.value)} />
         </label>
         <label className="field">
           <span>Platit</span>
@@ -138,7 +163,7 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
             <button
               type="button"
               className="chip chip--quiet"
-              onClick={() => setForm({ ...emptyForm, ...t, qty: 1 })}
+              onClick={() => setForm({ ...emptyForm, ...t, qty: 1, municeId: t.kind === 'strelna' ? t.municeId ?? '' : '' })}
             >
               Upravit
             </button>
@@ -218,6 +243,48 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
             />
           </label>
         </div>
+      )}
+
+      {form.kind === 'strelna' && (
+        <>
+          <div className="field-row">
+            <label className="field">
+              <span>Útočnost</span>
+              <input
+                type="number"
+                value={form.utocnost}
+                onChange={(e) => setForm({ ...form, utocnost: Number(e.target.value) || 0 })}
+              />
+            </label>
+            <label className="field">
+              <span>Munice</span>
+              <select
+                value={form.municeId}
+                onChange={(e) => setForm({ ...form, municeId: e.target.value })}
+              >
+                <option value="">Bez munice</option>
+                {AMMO_TEMPLATES.map((t) => (
+                  <option key={t.templateId} value={t.templateId}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="field-row">
+            {DOSTREL_ORDER.map((k, i) => (
+              <label key={k} className="field">
+                <span>{DOSTREL_LABELS[k]} dostřel</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={form.dostrel[i]}
+                  onChange={(e) => setDostrel(i, Number(e.target.value) || 0)}
+                />
+              </label>
+            ))}
+          </div>
+        </>
       )}
 
       {form.kind === 'zbroj' && (

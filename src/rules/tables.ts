@@ -2,8 +2,13 @@
 // Copy the real tables out of Pravidla DrD 1.6 - this is the only file you
 // should need to touch to make the maths match how your group plays.
 
+import type { Dostrel } from '../types/character';
+
 /** Label for the weight unit used across the inventory screen. */
 export const WEIGHT_UNIT = 'mincí';
+
+/** Label for the distance unit used for ranged weapons. */
+export const RANGE_UNIT = 'sáhů';
 
 /** [minValue, maxValue, bonus] - first matching row wins. */
 export const BONUS_TABLE: ReadonlyArray<readonly [number, number, number]> = [
@@ -47,4 +52,11 @@ export const ZATIZENI_LABELS: Record<ZatizeniLevel, string> = {
   stredne: 'Středně zatížen',
   tezce: 'Těžce zatížen',
   pretizen: 'Přetížen',
+};
+
+/** ÚČ modifier for shooting at each range band. */
+export const DOSTREL_MOD: Record<Dostrel, number> = {
+  maly: 1,
+  stredni: 0,
+  velky: -2,
 };

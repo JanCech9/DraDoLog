@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Character, Item, LogKind } from '../types/character';
+import type { Character, Item, LogKind, Strelna } from '../types/character';
 import { fromTemplate, type ItemTemplate } from '../data/catalog';
 import { createCharacter, newId } from './defaultCharacter';
 import { PRESVEDCENI_LABELS, type Presvedceni } from '../types/character';
@@ -51,8 +51,8 @@ export function useCharacter() {
   }, []);
 
   const log = useCallback(
-    (draft: Character, kind: LogKind, text: string, delta?: number) => {
-      draft.log.unshift({ id: newId(), ts: Date.now(), kind, text, delta });
+    (draft: Character, kind: LogKind, text: string, delta?: number, ref?: string) => {
+      draft.log.unshift({ id: newId(), ts: Date.now(), kind, text, delta, ref });
       draft.log = draft.log.slice(0, 100);
     },
     [],
@@ -137,7 +137,7 @@ export function useCharacter() {
     [update],
   );
 
-  /** Only one zbraň and one zbroj can be worn at a time. */
+  /** One item per kind can be worn at a time: one zbraň, one střelná zbraň, one zbroj. */
   const toggleEquipped = useCallback(
     (id: string) =>
       update((draft) => {
@@ -152,6 +152,22 @@ export function useCharacter() {
     [update],
   );
 
+  /** Fire the equipped ranged weapon: uses one piece of its ammo. */
+  const shoot = useCallback(
+    () =>
+      update((draft) => {
+        const weapon = draft.inventory.find(
+          (i): i is Strelna => i.kind === 'strelna' && i.equipped,
+        );
+        if (!weapon?.municeId) return;
+        const ammo = draft.inventory.find((i) => i.templateId === weapon.municeId && i.qty > 0);
+        if (!ammo) return;
+        ammo.qty -= 1;
+        log(draft, 'ammo', `Výstřel: ${weapon.name}`, -1, weapon.municeId);
+      }),
+    [update, log],
+  );
+
   const undoLast = useCallback(
     () =>
       update((draft) => {
@@ -161,6 +177,10 @@ export function useCharacter() {
         if (entry.kind === 'mag') draft.magenergie.current -= entry.delta;
         if (entry.kind === 'xp') draft.xp -= entry.delta;
         if (entry.kind === 'money') draft.money -= entry.delta;
+        if (entry.kind === 'ammo' && entry.ref) {
+          const ammo = draft.inventory.find((i) => i.templateId === entry.ref);
+          if (ammo) ammo.qty -= entry.delta;
+        }
         draft.log.shift();
       }),
     [update],
@@ -194,6 +214,7 @@ export function useCharacter() {
     removeItem,
     setQty,
     toggleEquipped,
+    shoot,
     undoLast,
     exportJson,
     importJson,

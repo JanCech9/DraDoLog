@@ -47,12 +47,23 @@ export const MAGIC_POVOLANI: readonly Povolani[] = ['kouzelnik', 'alchymista'];
 
 export type Vlastnosti = Record<Vlastnost, number>;
 
-export type ItemKind = 'zbran' | 'zbroj' | 'ostatni';
+export type ItemKind = 'zbran' | 'strelna' | 'zbroj' | 'ostatni';
 
 export const ITEM_KIND_LABELS: Record<ItemKind, string> = {
   zbran: 'Zbraň',
+  strelna: 'Střelná zbraň',
   zbroj: 'Zbroj',
   ostatni: 'Ostatní',
+};
+
+export type Dostrel = 'maly' | 'stredni' | 'velky';
+
+export const DOSTREL_ORDER: readonly Dostrel[] = ['maly', 'stredni', 'velky'];
+
+export const DOSTREL_LABELS: Record<Dostrel, string> = {
+  maly: 'Malý',
+  stredni: 'Střední',
+  velky: 'Velký',
 };
 
 interface ItemBase {
@@ -74,6 +85,16 @@ export interface Zbran extends ItemBase {
   iniciativa: number;
 }
 
+export interface Strelna extends ItemBase {
+  kind: 'strelna';
+  equipped: boolean;
+  utocnost: number;
+  /** Range limits in sáhy, in DOSTREL_ORDER: [malý, střední, velký]. */
+  dostrel: [number, number, number];
+  /** templateId of the ammo stack this weapon consumes. */
+  municeId?: string;
+}
+
 export interface Zbroj extends ItemBase {
   kind: 'zbroj';
   equipped: boolean;
@@ -85,9 +106,9 @@ export interface Ostatni extends ItemBase {
   kind: 'ostatni';
 }
 
-export type Item = Zbran | Zbroj | Ostatni;
+export type Item = Zbran | Strelna | Zbroj | Ostatni;
 
-export type LogKind = 'hp' | 'xp' | 'money' | 'mag' | 'note';
+export type LogKind = 'hp' | 'xp' | 'money' | 'mag' | 'ammo' | 'note';
 
 export interface LogEntry {
   id: string;
@@ -95,6 +116,8 @@ export interface LogEntry {
   kind: LogKind;
   delta?: number;
   text: string;
+  /** For 'ammo' entries: templateId of the stack, so undo can put the shot back. */
+  ref?: string;
 }
 
 export interface Character {
