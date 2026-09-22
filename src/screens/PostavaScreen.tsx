@@ -128,6 +128,17 @@ export function PostavaScreen({ store }: { store: CharacterStore }) {
       <p className="note">
         Nosnost {d.nosnost} {WEIGHT_UNIT} · neseš {d.weight} {WEIGHT_UNIT}
       </p>
+      <h2 className="heading">Příběh</h2>
+      <label className="field field--wide">
+        <span className="sr-only">Příběh postavy</span>
+        <textarea
+          className="story"
+          rows={8}
+          value={character.pribeh}
+          placeholder="Odkud pochází, co hledá, koho nenávidí…"
+          onChange={(e) => update((draft) => void (draft.pribeh = e.target.value))}
+        />
+      </label>
     </div>
   );
 }

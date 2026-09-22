@@ -15,6 +15,7 @@ export function createCharacter(): Character {
       uroven: 1,
       presvedceni: 'neutralni',
     },
+    pribeh: '',
     vlastnosti: { sil: 10, obr: 10, odl: 10, int: 10, chs: 10 },
     hp: { current: 10, max: 10 },
     magenergie: { current: 0, max: 0 },

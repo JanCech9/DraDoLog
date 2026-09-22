@@ -17,19 +17,22 @@ function normalizePresvedceni(value: unknown): Presvedceni {
   return 'neutralni';
 }
 
+/** Fill in fields that older saves don't have. Returns null for unknown formats. */
+function normalize(parsed: Character | null): Character | null {
+  if (parsed?.version !== 1) return null;
+  parsed.identity.presvedceni = normalizePresvedceni(parsed.identity.presvedceni);
+  parsed.pribeh = typeof parsed.pribeh === 'string' ? parsed.pribeh : '';
+  return parsed;
+}
+
 function load(): Character | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Character;
-    if (parsed?.version !== 1) return null;
-    parsed.identity.presvedceni = normalizePresvedceni(parsed.identity.presvedceni);
-    return parsed;
+    return raw ? normalize(JSON.parse(raw) as Character) : null;
   } catch {
     return null;
   }
 }
-
 export function useCharacter() {
   const [character, setCharacter] = useState<Character>(() => load() ?? createCharacter());
 
@@ -197,8 +200,8 @@ export function useCharacter() {
   }, [character]);
 
   const importJson = useCallback(async (file: File) => {
-    const parsed = JSON.parse(await file.text()) as Character;
-    if (parsed?.version !== 1) throw new Error('Nepodporovaný formát souboru.');
+    const parsed = normalize(JSON.parse(await file.text()) as Character);
+    if (!parsed) throw new Error('Nepodporovaný formát souboru.');
     setCharacter(parsed);
   }, []);
 

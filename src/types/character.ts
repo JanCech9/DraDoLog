@@ -131,6 +131,7 @@ export interface Character {
     presvedceni: Presvedceni;
   };
   /** Base values only - every bonus is derived from these at render time. */
+  pribeh: string;
   vlastnosti: Vlastnosti;
   hp: { current: number; max: number };
   magenergie: { current: number; max: number };
