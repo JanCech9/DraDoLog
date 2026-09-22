@@ -13,7 +13,7 @@ export function createCharacter(): Character {
       rasa: 'clovek',
       povolani: 'bojovnik',
       uroven: 1,
-      presvedceni: '',
+      presvedceni: 'neutralni',
     },
     vlastnosti: { sil: 10, obr: 10, odl: 10, int: 10, chs: 10 },
     hp: { current: 10, max: 10 },

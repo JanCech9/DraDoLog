@@ -1,4 +1,5 @@
 import type { CharacterStore } from '../state/useCharacter';
+import type { Presvedceni } from '../types/character';
 import { derive } from '../rules/derived';
 import { WEIGHT_UNIT } from '../rules/tables';
 import {
@@ -6,6 +7,7 @@ import {
   RASA_LABELS,
   VLASTNOSTI_ORDER,
   VLASTNOST_LABELS,
+  PRESVEDCENI_LABELS,
   type Povolani,
   type Rasa,
 } from '../types/character';
@@ -75,11 +77,18 @@ export function PostavaScreen({ store }: { store: CharacterStore }) {
         </label>
         <label className="field">
           <span>Přesvědčení</span>
-          <input
+          <select
             value={character.identity.presvedceni}
-            placeholder="např. zmatené dobro"
-            onChange={(e) => update((draft) => void (draft.identity.presvedceni = e.target.value))}
-          />
+            onChange={(e) =>
+              update((draft) => void (draft.identity.presvedceni = e.target.value as Presvedceni))
+            }
+          >
+            {Object.entries(PRESVEDCENI_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
         </label>
       </div>
 

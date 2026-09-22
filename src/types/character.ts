@@ -4,6 +4,8 @@
 export type Rasa = 'clovek' | 'trpaslik' | 'elf' | 'hobit' | 'kroll' | 'barbar';
 export type Povolani = 'bojovnik' | 'hranicar' | 'alchymista' | 'kouzelnik' | 'zlodej';
 export type Vlastnost = 'sil' | 'obr' | 'odl' | 'int' | 'chs';
+export type Presvedceni = | 'zakonne-dobro' | 'zmatene-dobro' | 'neutralni' | 'zmatene-zlo' | 'zakonne-zlo';
+
 
 export const RASA_LABELS: Record<Rasa, string> = {
   clovek: 'Člověk',
@@ -28,6 +30,14 @@ export const VLASTNOST_LABELS: Record<Vlastnost, string> = {
   odl: 'Odolnost',
   int: 'Inteligence',
   chs: 'Charisma',
+};
+
+export const PRESVEDCENI_LABELS: Record<Presvedceni, string> = {
+  'zakonne-dobro': 'Zákonné dobro',
+  'zmatene-dobro': 'Zmatené dobro',
+  neutralni: 'Neutrální',
+  'zmatene-zlo': 'Zmatené zlo',
+  'zakonne-zlo': 'Zákonné zlo',
 };
 
 export const VLASTNOSTI_ORDER: readonly Vlastnost[] = ['sil', 'obr', 'odl', 'int', 'chs'];
@@ -95,7 +105,7 @@ export interface Character {
     rasa: Rasa;
     povolani: Povolani;
     uroven: number;
-    presvedceni: string;
+    presvedceni: Presvedceni;
   };
   /** Base values only - every bonus is derived from these at render time. */
   vlastnosti: Vlastnosti;

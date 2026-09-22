@@ -2,15 +2,29 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Character, Item, LogKind } from '../types/character';
 import { fromTemplate, type ItemTemplate } from '../data/catalog';
 import { createCharacter, newId } from './defaultCharacter';
+import { PRESVEDCENI_LABELS, type Presvedceni } from '../types/character';
 
 const STORAGE_KEY = 'drd-sheet:character';
+
+function normalizePresvedceni(value: unknown): Presvedceni {
+  if (typeof value === 'string') {
+    if (value in PRESVEDCENI_LABELS) return value as Presvedceni;
+    const match = Object.entries(PRESVEDCENI_LABELS).find(
+      ([, label]) => label.toLowerCase() === value.trim().toLowerCase(),
+    );
+    if (match) return match[0] as Presvedceni;
+  }
+  return 'neutralni';
+}
 
 function load(): Character | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Character;
-    return parsed?.version === 1 ? parsed : null;
+    if (parsed?.version !== 1) return null;
+    parsed.identity.presvedceni = normalizePresvedceni(parsed.identity.presvedceni);
+    return parsed;
   } catch {
     return null;
   }
