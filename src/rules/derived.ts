@@ -16,8 +16,8 @@ import { coinCount } from './money';
 import {
   BONUS_TABLE,
   DOSTREL_MOD,
-  NOSNOST_TABLE,
   ZATIZENI_STEPS,
+  nosnostFormula,
   type ZatizeniLevel,
 } from './tables';
 
@@ -39,8 +39,8 @@ export function bonuses(v: Vlastnosti): Record<Vlastnost, number> {
   };
 }
 
-export function nosnost(sila: number): number {
-  return lookup(NOSNOST_TABLE, sila);
+export function nosnost(v: Vlastnosti): number {
+  return nosnostFormula(v);
 }
 
 export const isZbran = (item: Item): item is Zbran => item.kind === 'zbran';
@@ -102,7 +102,7 @@ export function derive(character: Character): DerivedStats {
   const zbran = equippedZbran(character.inventory);
   const strelna = equippedStrelna(character.inventory);
   const zbroj = equippedZbroj(character.inventory);
-  const capacity = nosnost(character.vlastnosti.sil);
+  const capacity = nosnost(character.vlastnosti);
   const weight = totalWeight(character);
 
   // Adjust these formulas if your table reads them differently.

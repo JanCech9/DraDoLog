@@ -2,10 +2,10 @@
 // Copy the real tables out of Pravidla DrD 1.6 - this is the only file you
 // should need to touch to make the maths match how your group plays.
 
-import type { Dostrel } from '../types/character';
+import type { Dostrel, Vlastnosti } from '../types/character';
 
 /** Label for the weight unit used across the inventory screen. */
-export const WEIGHT_UNIT = 'mincí';
+export const WEIGHT_UNIT = 'mn';
 
 /** Label for the distance unit used for ranged weapons. */
 export const RANGE_UNIT = 'sáhů';
@@ -25,15 +25,15 @@ export const BONUS_TABLE: ReadonlyArray<readonly [number, number, number]> = [
   [21, Infinity, 5],
 ];
 
-/** [minSila, maxSila, carrying capacity] - first matching row wins. */
-export const NOSNOST_TABLE: ReadonlyArray<readonly [number, number, number]> = [
-  [-Infinity, 5, 300],
-  [6, 10, 600],
-  [11, 14, 1000],
-  [15, 17, 1500],
-  [18, 20, 2200],
-  [21, Infinity, 3000],
-];
+
+// PLACEHOLDER coefficients - replace with the numbers from your rulebook's zatížení table.
+export const NOSNOST_PER_SILA = 50;
+export const NOSNOST_PER_ODOLNOST = 0; // set > 0 if your table counts Odolnost too
+
+/** Carrying capacity (in WEIGHT_UNIT) derived from vlastnosti. */
+export function nosnostFormula(v: Vlastnosti): number {
+  return Math.max(0, Math.round(v.sil * NOSNOST_PER_SILA + v.odl * NOSNOST_PER_ODOLNOST));
+}
 
 export type ZatizeniLevel = 'nezatizen' | 'lehce' | 'stredne' | 'tezce' | 'pretizen';
 
