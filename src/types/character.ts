@@ -5,7 +5,7 @@ export type Rasa = 'clovek' | 'trpaslik' | 'elf' | 'hobit' | 'kroll' | 'barbar';
 export type Povolani = 'bojovnik' | 'hranicar' | 'alchymista' | 'kouzelnik' | 'zlodej';
 export type Vlastnost = 'sil' | 'obr' | 'odl' | 'int' | 'chs';
 export type Presvedceni = | 'zakonne-dobro' | 'zmatene-dobro' | 'neutralni' | 'zmatene-zlo' | 'zakonne-zlo';
-export type SchopnostKind = 'pasivni' | 'procentni' | 'aktivni';
+
 
 export const RASA_LABELS: Record<Rasa, string> = {
   clovek: 'Člověk',
@@ -42,7 +42,7 @@ export const PRESVEDCENI_LABELS: Record<Presvedceni, string> = {
 
 export const VLASTNOSTI_ORDER: readonly Vlastnost[] = ['sil', 'obr', 'odl', 'int', 'chs'];
 
-/** Classes that track magenergie. */
+/** Classes that track magenergie. Add 'hranicar' if your table plays it that way. */
 export const MAGIC_POVOLANI: readonly Povolani[] = ['kouzelnik', 'alchymista'];
 
 export type Vlastnosti = Record<Vlastnost, number>;
@@ -108,7 +108,7 @@ export interface Ostatni extends ItemBase {
 
 export type Item = Zbran | Strelna | Zbroj | Ostatni;
 
-export type LogKind = 'hp' | 'xp' | 'money' | 'mag' | 'ammo' | 'note';
+export type LogKind = 'hp' | 'xp' | 'money' | 'mag' | 'ammo' | 'craft' | 'note';
 
 export interface LogEntry {
   id: string;
@@ -116,7 +116,7 @@ export interface LogEntry {
   kind: LogKind;
   delta?: number;
   text: string;
-  /** For 'ammo' entries: templateId of the stack, so undo can put the shot back. */
+  /** For 'ammo' and 'craft' entries: templateId of the stack, so undo can fix it. */
   ref?: string;
 }
 
@@ -148,6 +148,8 @@ export interface Character {
   schopnostiMod: Record<string, number>;
 }
 
+export type SchopnostKind = 'pasivni' | 'procentni' | 'aktivni';
+
 export interface SchopnostTemplate {
   id: string;
   name: string;
@@ -159,6 +161,19 @@ export interface SchopnostTemplate {
   magCost?: number;
   /** For 'procentni': base chance at level 1; see rules/abilities.ts. */
   zakladniSance?: number;
+  popis?: string;
+}
+
+export type RysKind = 'pasivni' | 'procentni' | 'dosah';
+
+/** Racial trait: infravidění, čich, sluch and friends. Derived from rasa, never stored. */
+export interface RysTemplate {
+  id: string;
+  name: string;
+  rasa: Rasa;
+  kind: RysKind;
+  /** For 'dosah': range in sáhy. For 'procentni': base chance in %. */
+  hodnota?: number;
   popis?: string;
 }
 

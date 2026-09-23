@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
 import { useCharacter } from './state/useCharacter';
 import { PostavaScreen } from './screens/PostavaScreen';
+import { SchopnostiScreen } from './screens/SchopnostiScreen';
 import { VybavaScreen } from './screens/VybavaScreen';
 import { BojScreen } from './screens/BojScreen';
-import { SchopnostiScreen } from './screens/SchopnostiScreen';
 
 type Tab = 'postava' | 'schopnosti' | 'vybava' | 'boj';
 
@@ -54,9 +54,9 @@ export default function App() {
 
       <main>
         {tab === 'postava' && <PostavaScreen store={store} />}
+        {tab === 'schopnosti' && <SchopnostiScreen store={store} />}
         {tab === 'vybava' && <VybavaScreen store={store} />}
         {tab === 'boj' && <BojScreen store={store} />}
-        {tab === 'schopnosti' && <SchopnostiScreen store={store} />}
       </main>
 
       <nav className="tabs">

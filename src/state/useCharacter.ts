@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Character, Item, LogKind, Strelna } from '../types/character';
-import type { KouzloTemplate, RecipeTemplate } from '../types/character';
-import { fromTemplate, type ItemTemplate } from '../data/catalog';
+import type { KouzloTemplate, RecipeTemplate, SchopnostTemplate } from '../types/character';
+import { CATALOG, fromTemplate, type ItemTemplate } from '../data/catalog';
 import { createCharacter, newId } from './defaultCharacter';
 import { PRESVEDCENI_LABELS, type Presvedceni } from '../types/character';
-import { CATALOG } from '../data/catalog';
 
 const STORAGE_KEY = 'drd-sheet:character';
+
+/** What actually comes out of JSON.parse: the current shape, but any version. */
 type StoredCharacter = Omit<Character, 'version'> & { version: number };
 
 function normalizePresvedceni(value: unknown): Presvedceni {
@@ -20,14 +21,18 @@ function normalizePresvedceni(value: unknown): Presvedceni {
   return 'neutralni';
 }
 
+/** Migrate older saves and fill in fields they don't have. Null = unusable file. */
 function normalize(parsed: unknown): Character | null {
   const c = parsed as StoredCharacter | null;
   if (!c || typeof c !== 'object' || typeof c.version !== 'number') return null;
   if (c.version > 2) return null;
+  if (!c.identity || !c.vlastnosti || !Array.isArray(c.inventory)) return null;
+
   if (c.version === 1) c.version = 2;
 
   c.identity.presvedceni = normalizePresvedceni(c.identity.presvedceni);
   c.pribeh = typeof c.pribeh === 'string' ? c.pribeh : '';
+  c.log = Array.isArray(c.log) ? c.log : [];
   c.kouzla = Array.isArray(c.kouzla) ? c.kouzla : [];
   c.recepty = Array.isArray(c.recepty) ? c.recepty : [];
   c.schopnostiMod = c.schopnostiMod ?? {};
@@ -199,28 +204,49 @@ export function useCharacter() {
     [update],
   );
 
-  // alchymista
-const brew = useCallback(
-  (r: RecipeTemplate) =>
-    update((draft) => {
-      if (draft.magenergie.current < r.magCost || draft.money < r.surovinyCena) return;
-      const template = CATALOG.find((t) => t.templateId === r.vysledekId);
-      if (!template) return;
+  const forgetSpell = useCallback(
+    (id: string) =>
+      update((draft) => {
+        draft.kouzla = draft.kouzla.filter((k) => k !== id);
+      }),
+    [update],
+  );
 
-      draft.magenergie.current -= r.magCost;
-      draft.money -= r.surovinyCena;
+  /** Class ability that costs magenergie. */
+  const useAbility = useCallback(
+    (s: SchopnostTemplate) =>
+      update((draft) => {
+        const cost = s.magCost ?? 0;
+        if (draft.magenergie.current < cost) return;
+        draft.magenergie.current -= cost;
+        log(draft, 'mag', `Použil: ${s.name}`, -cost);
+      }),
+    [update, log],
+  );
 
-      const stack = template.stackable
-        ? draft.inventory.find((i) => i.templateId === template.templateId)
-        : undefined;
-      if (stack) stack.qty += 1;
-      else draft.inventory.push(fromTemplate(template, 1));
+  /** Alchymista: spend magenergie + ingredients, get the item in the inventory. */
+  const brew = useCallback(
+    (r: RecipeTemplate) =>
+      update((draft) => {
+        if (draft.magenergie.current < r.magCost || draft.money < r.surovinyCena) return;
+        const template = CATALOG.find((t) => t.templateId === r.vysledekId);
+        if (!template) return;
 
-      log(draft, 'money', `Suroviny: ${r.name}`, -r.surovinyCena);
-      log(draft, 'mag', `Vyrobeno: ${r.name}`, -r.magCost);
-    }),
-  [update, log],
-);
+        draft.magenergie.current -= r.magCost;
+        draft.money -= r.surovinyCena;
+
+        const stack = template.stackable
+          ? draft.inventory.find((i) => i.templateId === template.templateId)
+          : undefined;
+        if (stack) stack.qty += 1;
+        else draft.inventory.push(fromTemplate(template, 1));
+
+        // Two entries: undo once gives back mag + the item, twice gives back the coins.
+        log(draft, 'money', `Suroviny: ${r.name}`, -r.surovinyCena);
+        log(draft, 'craft', `Vyrobeno: ${r.name}`, -r.magCost, template.templateId);
+      }),
+    [update, log],
+  );
 
   const undoLast = useCallback(
     () =>
@@ -234,6 +260,14 @@ const brew = useCallback(
         if (entry.kind === 'ammo' && entry.ref) {
           const ammo = draft.inventory.find((i) => i.templateId === entry.ref);
           if (ammo) ammo.qty -= entry.delta;
+        }
+        if (entry.kind === 'craft' && entry.ref) {
+          draft.magenergie.current -= entry.delta;
+          const made = draft.inventory.find((i) => i.templateId === entry.ref);
+          if (made) {
+            made.qty -= 1;
+            if (made.qty <= 0) draft.inventory = draft.inventory.filter((i) => i !== made);
+          }
         }
         draft.log.shift();
       }),
@@ -271,6 +305,8 @@ const brew = useCallback(
     shoot,
     castSpell,
     learnSpell,
+    forgetSpell,
+    useAbility,
     brew,
     undoLast,
     exportJson,
