@@ -3,11 +3,13 @@ import { useCharacter } from './state/useCharacter';
 import { PostavaScreen } from './screens/PostavaScreen';
 import { VybavaScreen } from './screens/VybavaScreen';
 import { BojScreen } from './screens/BojScreen';
+import { SchopnostiScreen } from './screens/SchopnostiScreen';
 
-type Tab = 'postava' | 'vybava' | 'boj';
+type Tab = 'postava' | 'schopnosti' | 'vybava' | 'boj';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'postava', label: 'Postava' },
+  { id: 'schopnosti', label: 'Schopnosti' },
   { id: 'vybava', label: 'Výbava' },
   { id: 'boj', label: 'Boj' },
 ];
@@ -54,6 +56,7 @@ export default function App() {
         {tab === 'postava' && <PostavaScreen store={store} />}
         {tab === 'vybava' && <VybavaScreen store={store} />}
         {tab === 'boj' && <BojScreen store={store} />}
+        {tab === 'schopnosti' && <SchopnostiScreen store={store} />}
       </main>
 
       <nav className="tabs">

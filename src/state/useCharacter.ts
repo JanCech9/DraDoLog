@@ -4,8 +4,10 @@ import type { KouzloTemplate, RecipeTemplate } from '../types/character';
 import { fromTemplate, type ItemTemplate } from '../data/catalog';
 import { createCharacter, newId } from './defaultCharacter';
 import { PRESVEDCENI_LABELS, type Presvedceni } from '../types/character';
+import { CATALOG } from '../data/catalog';
 
 const STORAGE_KEY = 'drd-sheet:character';
+type StoredCharacter = Omit<Character, 'version'> & { version: number };
 
 function normalizePresvedceni(value: unknown): Presvedceni {
   if (typeof value === 'string') {
@@ -18,22 +20,29 @@ function normalizePresvedceni(value: unknown): Presvedceni {
   return 'neutralni';
 }
 
-/** Fill in fields that older saves don't have. Returns null for unknown formats. */
-function normalize(parsed: Character | null): Character | null {
-  if (parsed?.version !== 2) return null;
-  parsed.identity.presvedceni = normalizePresvedceni(parsed.identity.presvedceni);
-  parsed.pribeh = typeof parsed.pribeh === 'string' ? parsed.pribeh : '';
-  return parsed;
+function normalize(parsed: unknown): Character | null {
+  const c = parsed as StoredCharacter | null;
+  if (!c || typeof c !== 'object' || typeof c.version !== 'number') return null;
+  if (c.version > 2) return null;
+  if (c.version === 1) c.version = 2;
+
+  c.identity.presvedceni = normalizePresvedceni(c.identity.presvedceni);
+  c.pribeh = typeof c.pribeh === 'string' ? c.pribeh : '';
+  c.kouzla = Array.isArray(c.kouzla) ? c.kouzla : [];
+  c.recepty = Array.isArray(c.recepty) ? c.recepty : [];
+  c.schopnostiMod = c.schopnostiMod ?? {};
+  return c as Character;
 }
 
 function load(): Character | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? normalize(JSON.parse(raw) as Character) : null;
+    return raw ? normalize(JSON.parse(raw)) : null;
   } catch {
     return null;
   }
 }
+
 export function useCharacter() {
   const [character, setCharacter] = useState<Character>(() => load() ?? createCharacter());
 
@@ -191,17 +200,27 @@ export function useCharacter() {
   );
 
   // alchymista
-  const brew = useCallback(
-    (r: RecipeTemplate) =>
-      update((draft) => {
-        if (draft.magenergie.current < r.magCost || draft.money < r.surovinyCena) return;
-        draft.magenergie.current -= r.magCost;
-        draft.money -= r.surovinyCena;
-        // push/merge catalog item r.vysledekId (reuse your fromTemplate)
-        log(draft, 'mag', `Vyrobeno: ${r.name}`, -r.magCost);
-      }),
-    [update, log],
-  );
+const brew = useCallback(
+  (r: RecipeTemplate) =>
+    update((draft) => {
+      if (draft.magenergie.current < r.magCost || draft.money < r.surovinyCena) return;
+      const template = CATALOG.find((t) => t.templateId === r.vysledekId);
+      if (!template) return;
+
+      draft.magenergie.current -= r.magCost;
+      draft.money -= r.surovinyCena;
+
+      const stack = template.stackable
+        ? draft.inventory.find((i) => i.templateId === template.templateId)
+        : undefined;
+      if (stack) stack.qty += 1;
+      else draft.inventory.push(fromTemplate(template, 1));
+
+      log(draft, 'money', `Suroviny: ${r.name}`, -r.surovinyCena);
+      log(draft, 'mag', `Vyrobeno: ${r.name}`, -r.magCost);
+    }),
+  [update, log],
+);
 
   const undoLast = useCallback(
     () =>
@@ -232,7 +251,7 @@ export function useCharacter() {
   }, [character]);
 
   const importJson = useCallback(async (file: File) => {
-    const parsed = normalize(JSON.parse(await file.text()) as Character);
+    const parsed = normalize(JSON.parse(await file.text()));
     if (!parsed) throw new Error('Nepodporovaný formát souboru.');
     setCharacter(parsed);
   }, []);
