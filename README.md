@@ -1,35 +1,76 @@
-# React + TypeScript + Vite
+# DraDoLog
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A mobile-first digital character sheet for **Dračí doupě 1.6**. Built to be used at the table during a session: track HP, magenergie, ammo, money and XP with one tap, with an undo for mis-taps.
 
-Currently, two official plugins are available:
+The UI is in Czech; code and comments are in English.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- **Postava** – name, race, class, level, alignment, backstory, attributes (Síla, Obratnost, Odolnost, Inteligence, Charisma) with derived bonuses, XP.
+- **Schopnosti** – class abilities unlocked by level (passive, percentage-based, active with mag cost). Casters can learn and cast spells.
+- **Výbava** – inventory with weapons, ranged weapons, armour and misc items; catalog of predefined items; stackable ammo; money in měďáky; carrying capacity and encumbrance level.
+- **Boj** – big HP counter (±1 / ±5), útočné číslo, obranné číslo, iniciativa, ranged ÚČ per range band, shooting with automatic ammo consumption.
+- **Activity log** – last 100 changes (HP, mag, XP, money, ammo) with **undo** of the latest entry.
+- **Persistence** – auto-saved to `localStorage`; manual backup/restore as JSON (*Uložit zálohu* / *Načíst*).
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## Tech stack
 
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
+- React 19 + TypeScript
+- Vite 8 (Rolldown) with React Compiler (`babel-plugin-react-compiler`)
+- oxlint
+- No backend, no runtime dependencies beyond React
 
-## Expanding the Oxlint configuration
+## Getting started
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+Requires **Node.js 22.12+**.
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev       # dev server
+npm run build     # type-check + production build
+npm run preview   # serve the build locally
+npm run lint      # oxlint
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Project structure
+
+```
+src/
+├── App.tsx               # layout, tab navigation, import/export
+├── main.tsx
+├── index.css
+├── screens/              # one component per tab
+│   ├── PostavaScreen.tsx
+│   ├── SchopnostiScreen.tsx
+│   ├── VybavaScreen.tsx
+│   └── BojScreen.tsx
+├── state/
+│   ├── useCharacter.ts   # the store: all mutations, log, undo, persistence
+│   └── defaultCharacter.ts
+├── rules/
+│   ├── tables.ts         # rulebook tables (bonus, nosnost, zatížení, dostřel)
+│   ├── derived.ts        # every computed stat
+│   ├── abilities.ts      # ability availability, % chance, can-cast
+│   └── money.ts
+├── data/                 # static content: item catalog, abilities, spells
+└── types/
+    └── character.ts      # domain model + Czech UI labels
+```
+
+## Design notes
+
+- **Nothing derived is stored.** The character holds only base values; ÚČ, OČ, iniciativa, bonuses, encumbrance etc. are computed in `rules/derived.ts` on every render, so edits can't leave the sheet out of sync.
+- **Single store.** `useCharacter()` exposes all actions; every change goes through `update(draft => …)`, which works on a `structuredClone` of the state.
+- **English keys, Czech labels.** Types use ASCII keys (`bojovnik`, `sil`, …); everything shown to the user comes from the `*_LABELS` maps in `types/character.ts`.
+- **Money in měďáky.** Stored in the smallest coin to avoid rounding when splitting loot. Coins also count toward carried weight.
+- **Versioned saves.** `Character.version` is checked on load/import; older versions are migrated in `normalize()`, newer ones are rejected.
+
+## Adapting the rules
+
+All numbers in `src/rules/tables.ts` are **placeholders**. Copy the real tables from *Pravidla DrD 1.6* there – it should be the only file you need to touch to match your group's maths. The percentage-skill formula in `rules/abilities.ts` (`sance`) is also a placeholder.
+
+To add content, extend the arrays in `src/data/` (items, abilities, spells).
+
+## Status
+
+Personal project, work in progress. Alchemist recipe brewing is implemented in the store (`brew`) but not yet exposed in the UI.
