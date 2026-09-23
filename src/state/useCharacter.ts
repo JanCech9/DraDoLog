@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Character, Item, LogKind, Strelna } from '../types/character';
+import type { KouzloTemplate, RecipeTemplate } from '../types/character';
 import { fromTemplate, type ItemTemplate } from '../data/catalog';
 import { createCharacter, newId } from './defaultCharacter';
 import { PRESVEDCENI_LABELS, type Presvedceni } from '../types/character';
@@ -19,7 +20,7 @@ function normalizePresvedceni(value: unknown): Presvedceni {
 
 /** Fill in fields that older saves don't have. Returns null for unknown formats. */
 function normalize(parsed: Character | null): Character | null {
-  if (parsed?.version !== 1) return null;
+  if (parsed?.version !== 2) return null;
   parsed.identity.presvedceni = normalizePresvedceni(parsed.identity.presvedceni);
   parsed.pribeh = typeof parsed.pribeh === 'string' ? parsed.pribeh : '';
   return parsed;
@@ -171,6 +172,37 @@ export function useCharacter() {
     [update, log],
   );
 
+  const castSpell = useCallback(
+    (k: KouzloTemplate) =>
+      update((draft) => {
+        if (draft.magenergie.current < k.magCost) return;
+        draft.magenergie.current -= k.magCost;
+        log(draft, 'mag', `Seslal: ${k.name}`, -k.magCost);
+      }),
+    [update, log],
+  );
+
+  const learnSpell = useCallback(
+    (id: string) =>
+      update((draft) => {
+        if (!draft.kouzla.includes(id)) draft.kouzla.push(id);
+      }),
+    [update],
+  );
+
+  // alchymista
+  const brew = useCallback(
+    (r: RecipeTemplate) =>
+      update((draft) => {
+        if (draft.magenergie.current < r.magCost || draft.money < r.surovinyCena) return;
+        draft.magenergie.current -= r.magCost;
+        draft.money -= r.surovinyCena;
+        // push/merge catalog item r.vysledekId (reuse your fromTemplate)
+        log(draft, 'mag', `Vyrobeno: ${r.name}`, -r.magCost);
+      }),
+    [update, log],
+  );
+
   const undoLast = useCallback(
     () =>
       update((draft) => {
@@ -218,6 +250,9 @@ export function useCharacter() {
     setQty,
     toggleEquipped,
     shoot,
+    castSpell,
+    learnSpell,
+    brew,
     undoLast,
     exportJson,
     importJson,

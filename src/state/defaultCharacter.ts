@@ -7,7 +7,7 @@ export const newId = (): string =>
 
 export function createCharacter(): Character {
   return {
-    version: 1,
+    version: 2,
     identity: {
       name: '',
       rasa: 'clovek',
@@ -23,5 +23,8 @@ export function createCharacter(): Character {
     money: 0,
     inventory: [],
     log: [],
+    kouzla: [],
+    recepty: [],
+    schopnostiMod: {},
   };
 }

@@ -5,7 +5,7 @@ export type Rasa = 'clovek' | 'trpaslik' | 'elf' | 'hobit' | 'kroll' | 'barbar';
 export type Povolani = 'bojovnik' | 'hranicar' | 'alchymista' | 'kouzelnik' | 'zlodej';
 export type Vlastnost = 'sil' | 'obr' | 'odl' | 'int' | 'chs';
 export type Presvedceni = | 'zakonne-dobro' | 'zmatene-dobro' | 'neutralni' | 'zmatene-zlo' | 'zakonne-zlo';
-
+export type SchopnostKind = 'pasivni' | 'procentni' | 'aktivni';
 
 export const RASA_LABELS: Record<Rasa, string> = {
   clovek: 'Člověk',
@@ -122,7 +122,7 @@ export interface LogEntry {
 
 export interface Character {
   /** Bump this when the shape changes so old saves can be migrated or discarded. */
-  version: 1;
+  version: 2;
   identity: {
     name: string;
     rasa: Rasa;
@@ -140,4 +140,48 @@ export interface Character {
   money: number;
   inventory: Item[];
   log: LogEntry[];
+  /** Known spell ids. Class abilities are derived from level, not stored. */
+  kouzla: string[];
+  /** Known recipe ids (alchymista). */
+  recepty: string[];
+  /** Manual per-ability overrides, e.g. GM-granted bonus to a % skill. */
+  schopnostiMod: Record<string, number>;
+}
+
+export interface SchopnostTemplate {
+  id: string;
+  name: string;
+  povolani: Povolani;
+  /** Level from which the class gets it. */
+  odUrovne: number;
+  kind: SchopnostKind;
+  /** For 'aktivni'. */
+  magCost?: number;
+  /** For 'procentni': base chance at level 1; see rules/abilities.ts. */
+  zakladniSance?: number;
+  popis?: string;
+}
+
+export interface KouzloTemplate {
+  id: string;
+  name: string;
+  povolani: Povolani;       // 'kouzelnik' | 'hranicar'
+  odUrovne: number;
+  magCost: number;
+  dosah?: string;           // free text, units vary per spell
+  rozsah?: string;
+  vyvolani?: string;
+  trvani?: string;
+  popis?: string;
+}
+
+export interface RecipeTemplate {  // alchymista
+  id: string;
+  name: string;
+  odUrovne: number;
+  magCost: number;
+  /** In měďáky, cost of ingredients. */
+  surovinyCena: number;
+  /** Catalog templateId of the resulting item. */
+  vysledekId: string;
 }
