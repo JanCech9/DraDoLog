@@ -136,42 +136,7 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
         ))}
       </ul>
 
-      <h2 className="heading">Obchod</h2>
-      <div className="field-row">
-        <label className="field field--wide">
-          <span>Hledat</span>
-          <input value={query} placeholder="meč, luk, lano…" onChange={(e) => setQuery(e.target.value)} />
-        </label>
-        <label className="field">
-          <span>Platit</span>
-          <input type="checkbox" checked={pay} onChange={(e) => setPay(e.target.checked)} />
-        </label>
-      </div>
-      <ul className="items">
-        {results.map((t) => (
-          <li key={t.templateId} className="item">
-            <span className="item__name">{t.name}</span>
-            <span className="item__meta">{formatMoney(t.price)} · {t.weight} {WEIGHT_UNIT}</span>
-            <button
-              type="button"
-              className="chip"
-              disabled={pay && character.money < t.price}
-              onClick={() => buyItem(t, 1, pay)}
-            >
-              {pay ? 'Koupit' : 'Přidat'}
-            </button>
-            <button
-              type="button"
-              className="chip chip--quiet"
-              onClick={() => setForm({ ...emptyForm, ...t, qty: 1, municeId: t.kind === 'strelna' ? t.municeId ?? '' : '' })}
-            >
-              Upravit
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      <h2 className="heading">Přidat věc</h2>
+            <h2 className="heading">Přidat věc</h2>
       <div className="field-row">
         <label className="field field--wide">
           <span>Název</span>
@@ -303,6 +268,43 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
       <button type="button" className="primary" onClick={submit}>
         Přidat do batohu
       </button>
+
+      <h2 className="heading">Obchod</h2>
+      <div className="field-row">
+        <label className="field field--wide">
+          <span>Hledat</span>
+          <input value={query} placeholder="meč, luk, lano…" onChange={(e) => setQuery(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Platit</span>
+          <input type="checkbox" checked={pay} onChange={(e) => setPay(e.target.checked)} />
+        </label>
+      </div>
+      <ul className="items">
+        {results.map((t) => (
+          <li key={t.templateId} className="item">
+            <span className="item__name">{t.name}</span>
+            <span className="item__meta">{formatMoney(t.price)} · {t.weight} {WEIGHT_UNIT}</span>
+            <button
+              type="button"
+              className="chip"
+              disabled={pay && character.money < t.price}
+              onClick={() => buyItem(t, 1, pay)}
+            >
+              {pay ? 'Koupit' : 'Přidat'}
+            </button>
+            <button
+              type="button"
+              className="chip chip--quiet"
+              onClick={() => setForm({ ...emptyForm, ...t, qty: 1, municeId: t.kind === 'strelna' ? t.municeId ?? '' : '' })}
+            >
+              Upravit
+            </button>
+          </li>
+        ))}
+      </ul>
+
+
     </div>
   );
 }
