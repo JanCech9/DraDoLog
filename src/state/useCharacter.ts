@@ -8,7 +8,6 @@ import type {
   Presvedceni,
   RecipeTemplate,
   Strelna,
-  Vlastnosti,
 } from '../types/character';
 import { PRESVEDCENI_LABELS } from '../types/character';
 import { CATALOG, findTemplate, fromTemplate, type ItemTemplate } from '../data/catalog';
@@ -16,7 +15,6 @@ import { RASA_RYSY } from '../data/races';
 import { createCharacter, newId } from './defaultCharacter';
 import { bonus } from '../rules/derived';
 import { hpKostka, formatKostka, magenergieZTabulky, meditujici, uspechAlchymisty, urovenInfo } from '../rules/abilities';
-import { jeFatalni, rollN, rollPercent } from '../rules/dice';
 import { hodinySpanku } from '../rules/tables';
 import { toMedaky } from '../rules/money';
 
@@ -293,12 +291,14 @@ export function useCharacter() {
   );
 
   /**
-   * Alchymista: spend magenergie and suroviny, roll k% against the success
-   * chance (str. 44). Resources are gone either way; the item appears only on success.
+   * Alchymista: spend magenergie and suroviny, compare the k% rolled at the
+   * table with the success chance (str. 44). Resources are gone either way;
+   * the item appears only on success.
    */
   const brew = useCallback(
-    (r: RecipeTemplate, postih = 0) =>
+    (r: RecipeTemplate, hod: number, postih = 0) =>
       update((draft) => {
+        if (hod < 1 || hod > 100) return;
         if (draft.magenergie.current < r.magCost || draft.money < r.surovinyCena) return;
         const velikost = RASA_RYSY[draft.identity.rasa].velikost;
         const template = findTemplate(r.vysledekId, velikost) ?? CATALOG.find((t) => t.templateId === r.vysledekId);
@@ -307,8 +307,9 @@ export function useCharacter() {
         draft.magenergie.current -= r.magCost;
         draft.money -= r.surovinyCena;
         const sance = Math.max(0, uspechAlchymisty(draft.vlastnosti.obr) - postih);
-        const hod = rollPercent();
         const uspech = hod <= sance;
+        // Fatální neúspěch (str. 82): a failed k% divisible by 10.
+        const fatalni = !uspech && hod % 10 === 0;
 
         if (r.surovinyCena) log(draft, 'money', `Suroviny: ${r.name}`, -r.surovinyCena);
         if (r.magCost) log(draft, 'mag', `Výroba: ${r.name}`, -r.magCost);
@@ -323,20 +324,11 @@ export function useCharacter() {
           log(
             draft,
             'note',
-            `Výroba se nezdařila: ${r.name} (hod ${hod} > ${sance} %)${jeFatalni(hod, sance) ? ' – fatální neúspěch!' : ''}`,
+            `Výroba se nezdařila: ${r.name} (hod ${hod} > ${sance} %)${fatalni ? ' – fatální neúspěch!' : ''}`,
           );
         }
       }),
     [update, log],
-  );
-
-  /** Set all attributes at once (character creation). */
-  const setVlastnosti = useCallback(
-    (v: Vlastnosti) =>
-      update((draft) => {
-        draft.vlastnosti = { ...v };
-      }),
-    [update],
   );
 
   /** Refill magenergie to the class table's value (kouzelník, hraničář) or set the max (alchymista). */
@@ -373,11 +365,12 @@ export function useCharacter() {
   );
 
   /**
-   * Postup na další úroveň (str. 27, 32): roll the class HP die + bonus za
-   * odolnost (at least +1), pay the training when asked to, bump the level.
+   * Postup na další úroveň (str. 27, 32): `hod` is the class HP die rolled at
+   * the table; add bonus za odolnost (at least +1 total), pay the training
+   * when asked to, bump the level.
    */
   const levelUp = useCallback(
-    (payTraining: boolean) =>
+    (payTraining: boolean, hod: number) =>
       update((draft) => {
         const info = urovenInfo(draft);
         const cost = toMedaky({ zl: info.cena ?? 0 });
@@ -387,7 +380,6 @@ export function useCharacter() {
           log(draft, 'money', `Výcvik na ${draft.identity.uroven + 1}. úroveň`, -cost);
         }
         const k = hpKostka(draft.identity.povolani);
-        const hod = rollN(k.n, k.sides) + k.plus;
         const gain = Math.max(1, hod + bonus(draft.vlastnosti.odl));
         draft.identity.uroven += 1;
         draft.hp.max += gain;
@@ -396,9 +388,6 @@ export function useCharacter() {
       }),
     [update, log],
   );
-
-  /** Write a free-form line (dice results, notes) into the log. */
-  const note = useCallback((text: string) => update((draft) => log(draft, 'note', text)), [update, log]);
 
   const undoLast = useCallback(
     () =>
@@ -451,11 +440,9 @@ export function useCharacter() {
     learnSpell,
     forgetSpell,
     brew,
-    setVlastnosti,
     refillMag,
     rest,
     levelUp,
-    note,
     undoLast,
     exportJson,
     importJson,

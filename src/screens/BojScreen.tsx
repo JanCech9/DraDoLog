@@ -2,14 +2,13 @@ import type { CharacterStore } from '../state/useCharacter';
 import { derive } from '../rules/derived';
 import { RANGE_UNIT } from '../rules/tables';
 import { magenergieZTabulky, meditujici } from '../rules/abilities';
-import { roll, roll1k6Plus, rollPercent } from '../rules/dice';
 import { DOSTREL_LABELS, DOSTREL_ORDER, MAGIC_POVOLANI } from '../types/character';
 
 const timeFormat = new Intl.DateTimeFormat('cs-CZ', { hour: '2-digit', minute: '2-digit' });
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 export function BojScreen({ store }: { store: CharacterStore }) {
-  const { character, update, adjustHp, adjustMag, shoot, undoLast, rest, refillMag, note } = store;
+  const { character, update, adjustHp, adjustMag, shoot, undoLast, rest, refillMag } = store;
   const d = derive(character);
   const { povolani, uroven } = character.identity;
   const isCaster =
@@ -17,21 +16,6 @@ export function BojScreen({ store }: { store: CharacterStore }) {
   const { strelna, ucStrelba, munice } = d;
   const postih = d.postihZraneni + d.postihNalozeni;
   const magTabulka = magenergieZTabulky(character);
-
-  function hodUtok() {
-    const { total, rolls } = roll1k6Plus();
-    const vysledek = total + d.uc + postih;
-    note(`Hod na útok: ${rolls.join('+')} + ÚČ ${d.uc}${postih ? ` ${signed(postih)}` : ''} = ${vysledek} (zranění + útočnost ${signed(d.utocnost)})`);
-  }
-
-  function hodObrana(seZbrani: boolean) {
-    const { total, rolls } = roll1k6Plus();
-    const oz = seZbrani ? d.oz : -3;
-    const vysledek = total + d.oc + oz + d.stitBonus + postih;
-    note(
-      `Hod na obranu: ${rolls.join('+')} + OČ ${d.oc} ${signed(oz)} (${seZbrani ? 'OZ' : 'bez obrany zbraní'})${d.stitBonus ? ` +${d.stitBonus} štít` : ''}${postih ? ` ${signed(postih)}` : ''} = ${vysledek}`,
-    );
-  }
 
   return (
     <div className="screen">
@@ -102,41 +86,14 @@ export function BojScreen({ store }: { store: CharacterStore }) {
         Útok: 1k6+ + {d.uc}
         {postih ? ` ${signed(postih)}` : ''} · obrana: 1k6+ + {d.oc} {signed(d.oz)} OZ
         {d.stitBonus ? ` +${d.stitBonus} štít` : ''}
-        {postih ? ` ${signed(postih)}` : ''} · zranění = rozdíl hodů {signed(d.utocnost)}, nejméně 1
+        {postih ? ` ${signed(postih)}` : ''} · zranění = rozdíl hodů {signed(d.utocnost)}, nejméně 1 · iniciativa: 1k6{' '}
+        {signed(d.iniciativa)}
       </p>
       {d.varovani.map((v) => (
         <p key={v} className="note delta--down">
           {v}
         </p>
       ))}
-
-      <div className="field-row">
-        <button type="button" className="chip" onClick={hodUtok}>
-          Hodit na útok
-        </button>
-        <button type="button" className="chip" onClick={() => hodObrana(true)}>
-          Hodit na obranu (zbraní)
-        </button>
-        <button type="button" className="chip" onClick={() => hodObrana(false)}>
-          Obrana bez zbraně
-        </button>
-        <button type="button" className="chip" onClick={() => note(`Hod 1k10: ${roll(10)}`)}>
-          1k10
-        </button>
-        <button type="button" className="chip" onClick={() => note(`Hod k%: ${rollPercent()}`)}>
-          k%
-        </button>
-        <button
-          type="button"
-          className="chip"
-          onClick={() => {
-            const k6 = roll(6);
-            note(`Hod na iniciativu: ${k6} ${signed(d.iniciativa)} = ${k6 + d.iniciativa}`);
-          }}
-        >
-          Iniciativa
-        </button>
-      </div>
 
       <h2 className="heading">Střelba</h2>
       {strelna && ucStrelba ? (

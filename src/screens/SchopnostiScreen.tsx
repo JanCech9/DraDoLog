@@ -109,6 +109,9 @@ export function SchopnostiScreen({ store }: { store: CharacterStore }) {
   const stopy = stopovani(uroven);
   const sanceLucby = uspechAlchymisty(character.vlastnosti.obr);
   const [postihLucby, setPostihLucby] = useState(0);
+  // The k% is rolled at the table and typed in before pressing "Vyrobit".
+  const [hodLucby, setHodLucby] = useState(0);
+  const hodPlatny = hodLucby >= 1 && hodLucby <= 100;
 
   return (
     <div className="screen">
@@ -198,20 +201,34 @@ export function SchopnostiScreen({ store }: { store: CharacterStore }) {
           <h2 className="heading">Lučba</h2>
           <p className="note">
             Magenergie v truhle {character.magenergie.current} / {character.magenergie.max} · peníze na suroviny{' '}
-            {formatMoney(character.money)} · úspěch {sanceLucby} % (v boji −10 % za každého nepřítele do 2 sáhů;
-            neúspěch spotřebuje suroviny i magenergii)
+            {formatMoney(character.money)} · úspěch {Math.max(0, sanceLucby - postihLucby)} % (v boji −10 % za každého
+            nepřítele do 2 sáhů; neúspěch spotřebuje suroviny i magenergii). Hoď k% a zapiš výsledek.
           </p>
-          <label className="field">
-            <span>Postih k úspěchu (%)</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step={10}
-              value={postihLucby}
-              onChange={(e) => setPostihLucby(Math.max(0, Number(e.target.value) || 0))}
-            />
-          </label>
+          <div className="field-row">
+            <label className="field">
+              <span>Postih k úspěchu (%)</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={10}
+                value={postihLucby}
+                onChange={(e) => setPostihLucby(Math.max(0, Number(e.target.value) || 0))}
+              />
+            </label>
+            <label className="field">
+              <span>Hod k%</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={100}
+                value={hodLucby || ''}
+                placeholder="1–100"
+                onChange={(e) => setHodLucby(Number(e.target.value) || 0)}
+              />
+            </label>
+          </div>
           <ul className="items">
             {RECEPTY.filter((r) => r.odUrovne <= uroven).map((r) => (
               <li key={r.id} className="item">
@@ -228,8 +245,10 @@ export function SchopnostiScreen({ store }: { store: CharacterStore }) {
                 <button
                   type="button"
                   className="chip"
-                  disabled={character.magenergie.current < r.magCost || character.money < r.surovinyCena}
-                  onClick={() => brew(r, postihLucby)}
+                  disabled={
+                    !hodPlatny || character.magenergie.current < r.magCost || character.money < r.surovinyCena
+                  }
+                  onClick={() => brew(r, hodLucby, postihLucby)}
                 >
                   Vyrobit
                 </button>

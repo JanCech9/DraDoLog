@@ -1,6 +1,6 @@
 import { derive, mezVyrazeni, postihBojeschopnosti } from '../src/rules/derived';
 import { sance, urovenInfo, magenergieZTabulky, stopovani, uspechKouzelnika } from '../src/rules/abilities';
-import { rollVlastnosti, rozsahVlastnosti, rollRange } from '../src/rules/dice';
+import { rozsahVlastnosti } from '../src/rules/tables';
 import { catalogFor, fromTemplate } from '../src/data/catalog';
 import { SCHOPNOSTI } from '../src/data/abilities';
 import { KOUZLA } from '../src/data/spells';
@@ -65,9 +65,6 @@ assert(stopovani(3).uvnitrLehky === 66, 'stopování 66');
 assert(String(rozsahVlastnosti('elf', 'alchymista', 'odl')) === '8,13', 'elf alchymista odl 8–13');
 assert(String(rozsahVlastnosti('barbar', 'bojovnik', 'sil')) === '14,19', 'barbar válečník síla 14–19');
 assert(String(rozsahVlastnosti('barbar', 'bojovnik', 'chs')) === '1,16', 'barbar charisma 1–16');
-for (let i = 0; i < 2000; i++) { const r = rollRange(1, 16); if (r < 1 || r > 16) throw new Error('rollRange out of bounds'); }
-for (let i = 0; i < 200; i++) { const v = rollVlastnosti('kroll', 'kouzelnik'); for (const x of Object.values(v)) if (x < 1 || x > 21) throw new Error('vlastnost out of range'); }
-console.log('ok   rolls within ranges');
 
 // Restrictions
 assert(proctoNeovlada('kouzelnik', cat.find(x => x.templateId === 'siroky-mec')!) !== null, 'kouzelník neovládá široký meč');

@@ -271,3 +271,13 @@ export const STOPOVANI = {
 export function hodinySpanku(bonusOdl: number): number {
   return Math.ceil(8 - bonusOdl / 2);
 }
+
+/** Range for one attribute of a given race and class (Tabulky vlastností + Tabulka oprav). */
+export function rozsahVlastnosti(rasa: Rasa, povolani: Povolani, v: Vlastnost): readonly [number, number] {
+  const zakladni = VLASTNOSTI_POVOLANI[povolani][v];
+  if (zakladni) {
+    const o = OPRAVY_RASA[rasa][v];
+    return [zakladni[0] + o, zakladni[1] + o];
+  }
+  return VLASTNOSTI_RASA[rasa][v];
+}
