@@ -176,6 +176,12 @@ export interface LogEntry {
 export interface Character {
   /** Bump this when the shape changes so old saves can be migrated or discarded. */
   version: 3;
+  /**
+   * Stable identity of the character, generated once and kept across renames
+   * and exports. The PJ view uses it to match a re-imported file to the
+   * character it already knows. Filled in on load for saves that predate it.
+   */
+  id: string;
   identity: {
     name: string;
     rasa: Rasa;

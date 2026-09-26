@@ -33,6 +33,9 @@ export default function App() {
       <header className="topbar">
         <h1>{store.character.identity.name || 'Deník dobrodruha'}</h1>
         <div className="topbar__actions">
+          <button type="button" className="chip chip--quiet" onClick={() => void store.shareJson()}>
+            Poslat PJ
+          </button>
           <button type="button" className="chip chip--quiet" onClick={store.exportJson}>
             Uložit zálohu
           </button>

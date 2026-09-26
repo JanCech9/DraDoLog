@@ -1,0 +1,220 @@
+/* Pán jeskyně - the party view. Laptop-first (the PJ sits behind a screen),
+   still usable on a phone. Builds on the tokens and components in index.css. */
+
+.app--pj {
+  max-width: 76rem;
+  min-height: 100vh;
+  padding-bottom: 3rem;
+  outline: 2px dashed transparent;
+  outline-offset: -2px;
+  transition: outline-color 120ms ease-out;
+}
+
+.app--dragging {
+  outline-color: var(--verdigris);
+}
+
+.app--pj .topbar {
+  align-items: center;
+}
+
+.app--pj .topbar__actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  flex: none;
+}
+
+.field--inline select {
+  width: auto;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.status {
+  color: var(--verdigris);
+}
+
+/* --- empty state / drop target --- */
+
+.dropzone {
+  margin-top: 2rem;
+  padding: 3rem 1.5rem;
+  border: 1px dashed var(--line);
+  border-radius: 4px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.dropzone .note {
+  max-width: 34rem;
+}
+
+.dropzone__title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.4rem;
+}
+
+/* --- combat table --- */
+
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.party {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.party th {
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+
+.party td {
+  padding: 0.55rem 0.6rem;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+
+.party td > .note {
+  display: block;
+  font-size: 0.78rem;
+}
+
+.party td > .note--inline {
+  display: inline;
+  font-size: 0.85rem;
+}
+
+.party strong {
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-weight: 500;
+}
+
+.party__name {
+  display: block;
+  font-family: var(--serif);
+  font-size: 1.1rem;
+}
+
+.hp--low {
+  color: var(--gold);
+}
+
+.hp--out {
+  color: var(--rust);
+}
+
+.money {
+  color: var(--gold);
+}
+
+/* --- character cards --- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(21rem, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+.card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.card__name {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 1.35rem;
+  font-weight: 500;
+}
+
+.card__stamp {
+  flex: none;
+  font-size: 0.78rem;
+}
+
+.card .combat strong .note {
+  font-size: 0.9rem;
+}
+
+.inline-strong {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.card__details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.card__details .heading {
+  margin-top: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.stats--compact .stat {
+  grid-template-columns: 1fr 3rem 3rem;
+  padding: 0.25rem 0;
+}
+
+.stat__value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.item--tight {
+  padding: 0.3rem 0;
+  font-size: 0.95rem;
+}
+
+.item--tight .note {
+  flex: none;
+  font-size: 0.8rem;
+}
+
+.story-text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: var(--serif);
+  line-height: 1.5;
+}
+
+.card__actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}

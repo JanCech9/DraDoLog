@@ -12,6 +12,16 @@ The UI is in Czech; code and comments are in English.
 - **Boj** – big HP counter (±1 / ±5), útočné číslo, obranné číslo, iniciativa, ranged ÚČ per range band, shooting with automatic ammo consumption.
 - **Activity log** – last 100 changes (HP, mag, XP, money, ammo) with **undo** of the latest entry.
 - **Persistence** – auto-saved to `localStorage`; manual backup/restore as JSON (*Uložit zálohu* / *Načíst*).
+- **Sharing with the PJ** – *Poslat PJ* hands the JSON to the phone's share sheet (Messenger, WhatsApp, mail…), or downloads it where file sharing isn't supported.
+
+## Pán jeskyně view (`/pj.html`)
+
+A second page of the same build for the Dungeon Master, meant for a laptop behind the screen. The PJ drops the players' JSON files onto the page (or picks them with *Načíst postavy*) and gets:
+
+- **Družina v boji** – one row per character with životy (coloured when wounded / vyřazen), ÚČ, OČ, iniciativa, ranged ÚČ per range band, magenergie, current postih and naložení. Sortable by name, initiative or HP.
+- **Postavy** – a read-only card per character; *Podrobnosti* unfolds vlastnosti, abilities with their % (postřeh included, for secret rolls), known spells, inventory, backstory and the latest log entries.
+
+The party is kept in `localStorage` (`drd-sheet:party`) so it survives a reload. Re-importing a character's file replaces the old snapshot – matched by the character's stable `id`, or by name for files exported before ids existed. Nothing is ever sent anywhere: the PJ sees the numbers as of the moment the player exported the file, and asks for a new file when he wants fresh ones.
 
 ## Tech stack
 
@@ -35,17 +45,29 @@ npm run lint      # oxlint
 ## Project structure
 
 ```
+index.html                # player's sheet
+pj.html                   # PJ's party view
 src/
 ├── App.tsx               # layout, tab navigation, import/export
 ├── main.tsx
 ├── index.css
+├── PjApp.tsx             # PJ view: import, sorting, table + cards
+├── pj.tsx
+├── pj.css
 ├── screens/              # one component per tab
 │   ├── PostavaScreen.tsx
 │   ├── SchopnostiScreen.tsx
 │   ├── VybavaScreen.tsx
-│   └── BojScreen.tsx
+│   ├── BojScreen.tsx
+│   └── pj/               # read-only components of the PJ view
+│       ├── PartyTable.tsx
+│       ├── CharacterCard.tsx
+│       └── format.ts
 ├── state/
 │   ├── useCharacter.ts   # the store: all mutations, log, undo, persistence
+│   ├── characterFile.ts  # JSON file export, download and Web Share
+│   ├── party.ts          # PJ's party: merge, persistence (pure functions)
+│   ├── useParty.ts       # PJ's party hook
 │   └── defaultCharacter.ts
 ├── rules/
 │   ├── tables.ts         # rulebook tables (bonus, nosnost, zatížení, dostřel)
@@ -63,7 +85,8 @@ src/
 - **Single store.** `useCharacter()` exposes all actions; every change goes through `update(draft => …)`, which works on a `structuredClone` of the state.
 - **English keys, Czech labels.** Types use ASCII keys (`bojovnik`, `sil`, …); everything shown to the user comes from the `*_LABELS` maps in `types/character.ts`.
 - **Money in měďáky.** Stored in the smallest coin to avoid rounding when splitting loot. Coins also count toward carried weight.
-- **Versioned saves.** `Character.version` is checked on load/import; older versions are migrated in `normalize()`, newer ones are rejected.
+- **Versioned saves.** `Character.version` is checked on load/import; older versions are migrated in `normalizeCharacter()`, newer ones are rejected. Every character carries a stable `id` (filled in on load for older saves) – it is what the PJ view matches re-imports on, and the natural key should the party ever sync live.
+- **Two pages, one rules engine.** `/pj.html` is a second Vite entry that reuses `rules/`, `data/` and `types/`; nothing about the rules is duplicated there.
 
 ## Adapting the rules
 
