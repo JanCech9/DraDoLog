@@ -13,6 +13,7 @@ import { PRESVEDCENI_LABELS } from '../types/character';
 import { CATALOG, findTemplate, fromTemplate, type ItemTemplate } from '../data/catalog';
 import { RASA_RYSY } from '../data/races';
 import { createCharacter, newId } from './defaultCharacter';
+import { characterToFile, downloadFile, shareFile } from './characterFile';
 import { bonus } from '../rules/derived';
 import { hpKostka, formatKostka, magenergieZTabulky, meditujici, uspechAlchymisty, urovenInfo } from '../rules/abilities';
 import { hodinySpanku } from '../rules/tables';
@@ -93,7 +94,9 @@ export function normalizeCharacter(parsed: unknown): Character | null {
   const c = parsed as StoredCharacter | null;
   if (!c || typeof c !== 'object' || typeof c.version !== 'number') return null;
   if (c.version > 3) return null;
+  if (!c.identity || typeof c.identity !== 'object') return null;
 
+  if (typeof c.id !== 'string' || !c.id) c.id = newId();
   c.identity.presvedceni = normalizePresvedceni(c.identity.presvedceni);
   if (!(c.identity.rasa in RASA_RYSY)) c.identity.rasa = 'clovek';
   c.pribeh = typeof c.pribeh === 'string' ? c.pribeh : '';
@@ -408,14 +411,14 @@ export function useCharacter() {
   );
 
   const exportJson = useCallback(() => {
-    const blob = new Blob([JSON.stringify(character, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${character.identity.name || 'postava'}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadFile(characterToFile(character));
   }, [character]);
+
+  /** Send the sheet to the PJ: share sheet where available, download otherwise. */
+  const shareJson = useCallback(
+    () => shareFile(characterToFile(character), character.identity.name || 'Postava'),
+    [character],
+  );
 
   const importJson = useCallback(async (file: File) => {
     const parsed = normalizeCharacter(JSON.parse(await file.text()));
@@ -445,6 +448,7 @@ export function useCharacter() {
     levelUp,
     undoLast,
     exportJson,
+    shareJson,
     importJson,
   };
 }

@@ -73,6 +73,30 @@ assert(proctoNeovlada('hranicar', cat.find(x => x.templateId === 'platova-zbroj'
 assert(proctoNeovlada('bojovnik', cat.find(x => x.templateId === 'rytirska-zbroj')!) === null, 'válečník nosí rytířskou');
 assert(proctoNeovlada('zlodej', cat.find(x => x.templateId === 'stit')!) !== null, 'zloděj bez štítu');
 
+// Party (PJ view): a re-imported sheet replaces the old snapshot instead of duplicating it.
+{
+  const { emptyParty, upsertMember, removeMember, normalizeParty } = await import('../src/state/party');
+  const { normalizeCharacter } = await import('../src/state/useCharacter');
+  const a = createCharacter(); a.identity.name = 'Krwell';
+  const b = createCharacter(); b.identity.name = 'Sindor';
+  let party = upsertMember(emptyParty(), { character: a, importedAt: 1 });
+  party = upsertMember(party, { character: b, importedAt: 2 });
+  const a2 = structuredClone(a); a2.hp.current = 3;
+  party = upsertMember(party, { character: a2, importedAt: 3 });
+  assert(party.members.length === 2 && party.members[0].character.hp.current === 3, 'same id → replaced in place');
+  const a3 = createCharacter(); a3.identity.name = ' krwell '; // old export without a stable id
+  party = upsertMember(party, { character: a3, importedAt: 4 });
+  assert(party.members.length === 2 && party.members[0].character.id === a3.id, 'same name → replaced (old exports)');
+  party = removeMember(party, b.id);
+  assert(party.members.length === 1, 'removeMember');
+  const legacy = JSON.parse(JSON.stringify(a)); delete legacy.id;
+  const norm = normalizeCharacter(legacy)!;
+  assert(typeof norm.id === 'string' && norm.id.length > 0, 'normalize fills a missing id');
+  assert(normalizeCharacter({ version: 3 }) === null, 'normalize rejects a sheet without identity');
+  const stored = normalizeParty(JSON.parse(JSON.stringify(party)))!;
+  assert(stored.members.length === 1 && stored.members[0].importedAt === 4, 'party survives a storage round-trip');
+}
+
 // Data integrity
 const ids = new Set<string>();
 for (const tpl of cat) { if (ids.has(tpl.templateId)) throw new Error('dup templateId ' + tpl.templateId); ids.add(tpl.templateId); }

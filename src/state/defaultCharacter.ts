@@ -8,6 +8,7 @@ export const newId = (): string =>
 export function createCharacter(): Character {
   return {
     version: 3,
+    id: newId(),
     identity: {
       name: '',
       rasa: 'clovek',
