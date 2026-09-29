@@ -4,6 +4,7 @@ import type { PartyMember } from './state/party';
 import { derive } from './rules/derived';
 import { CharacterCard } from './screens/pj/CharacterCard';
 import { PartyTable } from './screens/pj/PartyTable';
+import { InfoButton } from './components/InfoDialog';
 
 type Order = 'nacteni' | 'jmeno' | 'iniciativa' | 'zivoty';
 
@@ -108,6 +109,7 @@ export default function PjApp() {
               e.target.value = '';
             }}
           />
+          <InfoButton variant="pj" />
         </div>
       </header>
 
