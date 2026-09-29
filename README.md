@@ -12,6 +12,7 @@ The UI is in Czech; code and comments are in English.
 - **Boj** – big HP counter (±1 / ±5), útočné číslo, obranné číslo, iniciativa, ranged ÚČ per range band, shooting with automatic ammo consumption.
 - **Activity log** – last 100 changes (HP, mag, XP, money, ammo) with **undo** of the latest entry.
 - **Persistence** – auto-saved to `localStorage`; manual backup/restore as JSON (*Uložit zálohu* / *Načíst*).
+- **O aplikaci** – the *i* button in the top bar opens a short about + guide dialog (native `<dialog>`, `src/components/InfoDialog.tsx`); the PJ view has its own variant.
 - **Sharing with the PJ** – *Poslat PJ* hands the JSON to the phone's share sheet (Messenger, WhatsApp, mail…), or downloads it where file sharing isn't supported.
 
 ## Pán jeskyně view (`/pj.html`)

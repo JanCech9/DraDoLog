@@ -4,6 +4,7 @@ import { PostavaScreen } from './screens/PostavaScreen';
 import { SchopnostiScreen } from './screens/SchopnostiScreen';
 import { VybavaScreen } from './screens/VybavaScreen';
 import { BojScreen } from './screens/BojScreen';
+import { InfoButton } from './components/InfoDialog';
 
 type Tab = 'postava' | 'schopnosti' | 'vybava' | 'boj';
 
@@ -52,6 +53,7 @@ export default function App() {
               e.target.value = '';
             }}
           />
+          <InfoButton variant="player" />
         </div>
       </header>
 
