@@ -8,7 +8,7 @@ const timeFormat = new Intl.DateTimeFormat('cs-CZ', { hour: '2-digit', minute: '
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 export function BojScreen({ store }: { store: CharacterStore }) {
-  const { character, update, adjustHp, adjustMag, shoot, undoLast, rest, refillMag } = store;
+  const { character, update, adjustHp, adjustMag, shoot, undoLast, canUndo, rest, refillMag } = store;
   const d = derive(character);
   const { povolani, uroven } = character.identity;
   const isCaster =
@@ -180,7 +180,13 @@ export function BojScreen({ store }: { store: CharacterStore }) {
         <p className="note">Nic se zatím nestalo.</p>
       ) : (
         <>
-          <button type="button" className="chip" onClick={undoLast}>
+          <button
+            type="button"
+            className="chip"
+            disabled={!canUndo}
+            title={canUndo ? undefined : 'Vrátit lze jen změny provedené od otevření deníku.'}
+            onClick={undoLast}
+          >
             Vrátit poslední změnu
           </button>
           <ol className="log">

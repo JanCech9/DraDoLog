@@ -20,7 +20,7 @@ import {
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 export function PostavaScreen({ store }: { store: CharacterStore }) {
-  const { character, update, adjustXp, adjustMoney, levelUp } = store;
+  const { character, update, adjustXp, adjustMoney, levelUp, pocatecniZivoty } = store;
   const d = derive(character);
   const { rasa, povolani, uroven } = character.identity;
   const rysy = RASA_RYSY[rasa];
@@ -32,21 +32,18 @@ export function PostavaScreen({ store }: { store: CharacterStore }) {
 
   // Dice are rolled at the table; the results are typed in here.
   const [hodPenize, setHodPenize] = useState(1);
-  const [hodZivoty, setHodZivoty] = useState(kostka.n + kostka.plus);
+  // Until a roll is typed in, the field follows the class die (it changes with povolání).
+  const [hodZivotyZadany, setHodZivoty] = useState<number>();
+  const hodZivoty = hodZivotyZadany ?? kostka.n + kostka.plus;
   const pocatecniPenize = toMedaky({ zl: (hodPenize + 5) * 10 });
-
-  function pocatecniZivoty() {
-    const hp = Math.max(1, hpZaklad(povolani) + d.bonus.odl);
-    update((draft) => {
-      draft.hp = { current: hp, max: hp };
-    });
-  }
 
   function postoupit(zaplatit: boolean) {
     const otazka = zaplatit
       ? `Zaplatit ${lvl.cena} zl za výcvik a postoupit na ${uroven + 1}. úroveň (hod na životy ${hodZivoty})?`
       : `Postoupit na ${uroven + 1}. úroveň bez placení (hod na životy ${hodZivoty})?`;
-    if (confirm(otazka)) levelUp(zaplatit, hodZivoty);
+    if (!confirm(otazka)) return;
+    levelUp(zaplatit, hodZivoty);
+    setHodZivoty(undefined); // next level, new roll
   }
 
   return (

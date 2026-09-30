@@ -17,6 +17,34 @@ import { AMMO_TEMPLATES, catalogFor, type ItemTemplate } from '../data/catalog';
 
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
+/**
+ * Number input for stats that can be negative (út, OZ, iniciativa).
+ * inputMode="numeric" would give iOS a keypad without a minus key, and a
+ * number input reports a lone "-" as "" - so the text being typed is kept
+ * here and pushed up only once it parses; an emptied field becomes 0 on blur.
+ * The content is selected on focus so that typing "-2" replaces the 0
+ * instead of producing the invalid "0-2".
+ */
+function SignedNumberInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const [typing, setTyping] = useState<string | null>(null);
+  return (
+    <input
+      type="number"
+      value={typing ?? value}
+      onFocus={(e) => e.currentTarget.select()}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setTyping(raw);
+        if (raw !== '') onChange(Number(raw) || 0);
+      }}
+      onBlur={() => {
+        if (typing === '') onChange(0);
+        setTyping(null);
+      }}
+    />
+  );
+}
+
 const emptyForm = {
   name: '',
   kind: 'ostatni' as ItemKind,
@@ -123,15 +151,23 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
     setForm({ ...form, dostrel: next });
   }
 
-  const numField = (label: string, key: 'sila' | 'utocnost' | 'obrana' | 'iniciativa' | 'ochrana' | 'stit') => (
+  const numField = (
+    label: string,
+    key: 'sila' | 'utocnost' | 'obrana' | 'iniciativa' | 'ochrana' | 'stit',
+    canBeNegative = false,
+  ) => (
     <label className="field" key={key}>
       <span>{label}</span>
-      <input
-        type="number"
-        inputMode="numeric"
-        value={form[key]}
-        onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) || 0 })}
-      />
+      {canBeNegative ? (
+        <SignedNumberInput value={form[key]} onChange={(n) => setForm({ ...form, [key]: n })} />
+      ) : (
+        <input
+          type="number"
+          inputMode="numeric"
+          value={form[key]}
+          onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) || 0 })}
+        />
+      )}
     </label>
   );
 
@@ -310,9 +346,9 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
       {form.kind === 'zbran' && (
         <div className="field-row">
           {numField('Síla zbraně (SZ)', 'sila')}
-          {numField('Útočnost', 'utocnost')}
-          {numField('Obrana zbraně (OZ)', 'obrana')}
-          {numField('Iniciativa (rozš. souboj)', 'iniciativa')}
+          {numField('Útočnost', 'utocnost', true)}
+          {numField('Obrana zbraně (OZ)', 'obrana', true)}
+          {numField('Iniciativa (rozš. souboj)', 'iniciativa', true)}
           {tridaField}
           <label className="field">
             <span>Obouruční</span>
@@ -329,7 +365,7 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
         <>
           <div className="field-row">
             {numField('Síla zbraně (SZ)', 'sila')}
-            {numField('Útočnost', 'utocnost')}
+            {numField('Útočnost', 'utocnost', true)}
             {tridaField}
             <label className="field">
               <span>Vrhací</span>
