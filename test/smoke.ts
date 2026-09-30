@@ -1,5 +1,5 @@
 import { derive, mezVyrazeni, postihBojeschopnosti } from '../src/rules/derived';
-import { sance, urovenInfo, magenergieZTabulky, stopovani, uspechKouzelnika } from '../src/rules/abilities';
+import { maMagenergii, sance, urovenInfo, magenergieZTabulky, stopovani, uspechKouzelnika } from '../src/rules/abilities';
 import { rozsahVlastnosti } from '../src/rules/tables';
 import { catalogFor, fromTemplate } from '../src/data/catalog';
 import { SCHOPNOSTI } from '../src/data/abilities';
@@ -60,6 +60,15 @@ k.identity.uroven = 2; info = urovenInfo(k); assert(info.chybi === 255, `chybí 
 
 // Hraničář 3. úrovně: chodba 60 + 6 = 66 (+12 za 5 skřetů řeší PJ)
 assert(stopovani(3).uvnitrLehky === 66, 'stopování 66');
+
+// Magenergie: kouzelník and alchymista from level 1, hraničář from level 2, válečník never
+{
+  const m = createCharacter(); m.identity.povolani = 'hranicar';
+  assert(!maMagenergii(m), 'hraničář 1. úrovně ještě nemá magenergii');
+  m.identity.uroven = 2; assert(maMagenergii(m), 'hraničář 2. úrovně má magenergii');
+  m.identity.povolani = 'alchymista'; m.identity.uroven = 1; assert(maMagenergii(m), 'alchymista má magenergii');
+  m.identity.povolani = 'bojovnik'; assert(!maMagenergii(m), 'válečník nemá magenergii');
+}
 
 // Ranges: elf alchymista odolnost 8–13; barbar válečník síla 14–19; barbar charisma 1–16
 assert(String(rozsahVlastnosti('elf', 'alchymista', 'odl')) === '8,13', 'elf alchymista odl 8–13');

@@ -1,4 +1,5 @@
 import type { Character, KouzloTemplate, Povolani, SchopnostTemplate } from '../types/character';
+import { MAGIC_POVOLANI } from '../types/character';
 import { SCHOPNOSTI } from '../data/abilities';
 import { bonus } from './derived';
 import {
@@ -69,6 +70,12 @@ export function magenergieZTabulky(c: Character): number {
 
 /** Does the class regain magenergie by meditation (kouzelník, hraničář) rather than keep a stock? */
 export const meditujici = (povolani: Povolani) => povolani === 'kouzelnik' || povolani === 'hranicar';
+
+/** Works with magenergie at this level: kouzelník, alchymista, hraničář from level 2. */
+export function maMagenergii(c: Character): boolean {
+  const { povolani, uroven } = c.identity;
+  return MAGIC_POVOLANI.includes(povolani) && !(povolani === 'hranicar' && uroven < 2);
+}
 
 /** How many spells a kouzelník may know at this level (str. 55); hraničář knows all of his. */
 export function pocetKouzel(c: Character): number | undefined {

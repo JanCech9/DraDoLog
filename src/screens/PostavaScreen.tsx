@@ -16,8 +16,7 @@ import {
   type Povolani,
   type Rasa,
 } from '../types/character';
-
-const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
+import { signed } from './format';
 
 export function PostavaScreen({ store }: { store: CharacterStore }) {
   const { character, update, adjustXp, adjustMoney, levelUp, pocatecniZivoty } = store;

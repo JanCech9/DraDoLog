@@ -14,8 +14,7 @@ import {
   type TridaZbrane,
 } from '../types/character';
 import { AMMO_TEMPLATES, catalogFor, type ItemTemplate } from '../data/catalog';
-
-const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
+import { signed } from './format';
 
 /**
  * Number input for stats that can be negative (út, OZ, iniciativa).
@@ -254,53 +253,7 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
           );
         })}
       </ul>
-
-      <h2 className="heading">Obchod</h2>
-      <p className="note">
-        Zbroj a štít jsou pro velikost {d.velikost}. Ceny jsou orientační; „dle PJ“ znamená, že pravidla cenu neuvádějí.
-      </p>
-      <div className="field-row">
-        <label className="field field--wide">
-          <span>Hledat</span>
-          <input value={query} placeholder="meč, luk, provaz…" onChange={(e) => setQuery(e.target.value)} />
-        </label>
-        <label className="field">
-          <span>Platit</span>
-          <input type="checkbox" checked={pay} onChange={(e) => setPay(e.target.checked)} />
-        </label>
-      </div>
-      <ul className="items">
-        {results.map((t) => {
-          const duvod = t.kind === 'ostatni' ? null : proctoNeovlada(character.identity.povolani, t);
-          return (
-            <li key={t.templateId} className="item">
-              <div className="item__main">
-                <span className="item__name">{t.name}</span>
-                <span className="note">
-                  {t.price ? formatMoney(t.price) : 'cena dle PJ'} · {t.weight} {WEIGHT_UNIT}
-                  {t.kind === 'zbran' && ` · SZ ${t.sila} / út ${signed(t.utocnost)} / OZ ${signed(t.obrana)} · ${TRIDA_ZBRANE_LABELS[t.trida]}${t.obourucni ? ', obouruční' : ''}`}
-                  {t.kind === 'strelna' && ` · SZ ${t.sila} / út ${signed(t.utocnost)} · dostřel ${t.dostrel.join('/')}`}
-                  {t.kind === 'zbroj' && ` · KZ ${t.ochrana}`}
-                  {t.kind === 'stit' && ` · +${t.obrana} k obraně`}
-                </span>
-                {duvod && <span className="note delta--down">{duvod}</span>}
-              </div>
-              <button
-                type="button"
-                className="chip"
-                disabled={pay && character.money < t.price}
-                onClick={() => buyItem(t, 1, pay)}
-              >
-                {pay && t.price ? 'Koupit' : 'Přidat'}
-              </button>
-              <button type="button" className="chip chip--quiet" onClick={() => setForm(fromCatalog(t))}>
-                Upravit
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-
+      
       <h2 className="heading">Přidat vlastní věc</h2>
       <div className="field-row">
         <label className="field field--wide">
@@ -409,6 +362,53 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
       <button type="button" className="primary" onClick={submit}>
         Přidat do batohu
       </button>
+
+      <h2 className="heading">Obchod</h2>
+      <p className="note">
+        Zbroj a štít jsou pro velikost {d.velikost}. Ceny jsou orientační; „dle PJ“ znamená, že pravidla cenu neuvádějí.
+      </p>
+      <div className="field-row">
+        <label className="field field--wide">
+          <span>Hledat</span>
+          <input value={query} placeholder="meč, luk, provaz…" onChange={(e) => setQuery(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Platit</span>
+          <input type="checkbox" checked={pay} onChange={(e) => setPay(e.target.checked)} />
+        </label>
+      </div>
+      <ul className="items">
+        {results.map((t) => {
+          const duvod = t.kind === 'ostatni' ? null : proctoNeovlada(character.identity.povolani, t);
+          return (
+            <li key={t.templateId} className="item">
+              <div className="item__main">
+                <span className="item__name">{t.name}</span>
+                <span className="note">
+                  {t.price ? formatMoney(t.price) : 'cena dle PJ'} · {t.weight} {WEIGHT_UNIT}
+                  {t.kind === 'zbran' && ` · SZ ${t.sila} / út ${signed(t.utocnost)} / OZ ${signed(t.obrana)} · ${TRIDA_ZBRANE_LABELS[t.trida]}${t.obourucni ? ', obouruční' : ''}`}
+                  {t.kind === 'strelna' && ` · SZ ${t.sila} / út ${signed(t.utocnost)} · dostřel ${t.dostrel.join('/')}`}
+                  {t.kind === 'zbroj' && ` · KZ ${t.ochrana}`}
+                  {t.kind === 'stit' && ` · +${t.obrana} k obraně`}
+                </span>
+                {duvod && <span className="note delta--down">{duvod}</span>}
+              </div>
+              <button
+                type="button"
+                className="chip"
+                disabled={pay && character.money < t.price}
+                onClick={() => buyItem(t, 1, pay)}
+              >
+                {pay && t.price ? 'Koupit' : 'Přidat'}
+              </button>
+              <button type="button" className="chip chip--quiet" onClick={() => setForm(fromCatalog(t))}>
+                Upravit
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
     </div>
   );
 }

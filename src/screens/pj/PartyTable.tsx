@@ -1,7 +1,8 @@
 import type { PartyMember } from '../../state/party';
 import { derive } from '../../rules/derived';
+import { maMagenergii } from '../../rules/abilities';
 import { ZATIZENI_LABELS } from '../../rules/tables';
-import { DOSTREL_ORDER, MAGIC_POVOLANI, POVOLANI_LABELS } from '../../types/character';
+import { DOSTREL_ORDER, POVOLANI_LABELS } from '../../types/character';
 import { hpTone, signed } from './format';
 
 /** One row per character: the numbers the PJ needs mid-combat, nothing else. */
@@ -27,7 +28,7 @@ export function PartyTable({ members }: { members: PartyMember[] }) {
             const d = derive(c);
             const postih = d.postihZraneni + d.postihNalozeni;
             const { povolani, uroven } = c.identity;
-            const isCaster = MAGIC_POVOLANI.includes(povolani) && !(povolani === 'hranicar' && uroven < 2);
+            const isCaster = maMagenergii(c);
             return (
               <tr key={c.id}>
                 <td>
