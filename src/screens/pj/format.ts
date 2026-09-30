@@ -1,7 +1,7 @@
 // Small formatting helpers shared by the PJ table and cards.
 import type { DerivedStats } from '../../rules/derived';
 
-export const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
+export { signed } from '../format';
 
 export const stampFormat = new Intl.DateTimeFormat('cs-CZ', {
   day: 'numeric',

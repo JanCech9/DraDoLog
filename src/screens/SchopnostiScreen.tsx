@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { CharacterStore } from '../state/useCharacter';
 import type { KouzloTemplate } from '../types/character';
 import {
+  meditujici,
   pocetKouzel,
   sance,
   schopnostiFor,
@@ -14,9 +15,7 @@ import { formatMoney } from '../rules/money';
 import { KOUZLA } from '../data/spells';
 import { RECEPTY } from '../data/recipes';
 import { RASA_RYSY } from '../data/races';
-import { MAGIC_POVOLANI } from '../types/character';
-
-const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
+import { signed } from './format';
 
 function KouzloRadek({
   k,
@@ -99,7 +98,7 @@ export function SchopnostiScreen({ store }: { store: CharacterStore }) {
   const rysy = RASA_RYSY[rasa];
 
   const schopnosti = schopnostiFor(character);
-  const isCaster = MAGIC_POVOLANI.includes(povolani) && povolani !== 'alchymista';
+  const isCaster = meditujici(povolani); // alchymista has recipes, not spells
   const kouzlaOd = povolani === 'hranicar' ? 2 : 1;
   const dostupna = KOUZLA.filter((k) => k.povolani === povolani && k.odUrovne <= uroven);
   const znama = dostupna.filter((k) => character.kouzla.includes(k.id));

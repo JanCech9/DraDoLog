@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { PartyMember } from '../../state/party';
 import { derive } from '../../rules/derived';
-import { sance, schopnostiFor, urovenInfo } from '../../rules/abilities';
+import { maMagenergii, sance, schopnostiFor, urovenInfo } from '../../rules/abilities';
 import { formatMoney } from '../../rules/money';
 import { RANGE_UNIT, WEIGHT_UNIT, ZATIZENI_LABELS } from '../../rules/tables';
 import { KOUZLA } from '../../data/spells';
@@ -9,7 +9,6 @@ import {
   DOSTREL_LABELS,
   DOSTREL_ORDER,
   ITEM_KIND_LABELS,
-  MAGIC_POVOLANI,
   POVOLANI_LABELS,
   PRESVEDCENI_LABELS,
   RASA_LABELS,
@@ -24,7 +23,7 @@ export function CharacterCard({ member, onRemove }: { member: PartyMember; onRem
   const d = derive(c);
   const { rasa, povolani, uroven, presvedceni } = c.identity;
   const [open, setOpen] = useState(false);
-  const isCaster = MAGIC_POVOLANI.includes(povolani) && !(povolani === 'hranicar' && uroven < 2);
+  const isCaster = maMagenergii(c);
   const postih = d.postihZraneni + d.postihNalozeni;
   const { strelna, ucStrelba } = d;
   const lvl = urovenInfo(c);

@@ -1,18 +1,17 @@
 import type { CharacterStore } from '../state/useCharacter';
 import { derive } from '../rules/derived';
 import { RANGE_UNIT } from '../rules/tables';
-import { magenergieZTabulky, meditujici } from '../rules/abilities';
-import { DOSTREL_LABELS, DOSTREL_ORDER, MAGIC_POVOLANI } from '../types/character';
+import { maMagenergii, magenergieZTabulky, meditujici } from '../rules/abilities';
+import { DOSTREL_LABELS, DOSTREL_ORDER } from '../types/character';
+import { signed } from './format';
 
 const timeFormat = new Intl.DateTimeFormat('cs-CZ', { hour: '2-digit', minute: '2-digit' });
-const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 export function BojScreen({ store }: { store: CharacterStore }) {
-  const { character, update, adjustHp, adjustMag, shoot, undoLast, rest, refillMag } = store;
+  const { character, update, adjustHp, adjustMag, shoot, undoLast, canUndo, rest, refillMag } = store;
   const d = derive(character);
-  const { povolani, uroven } = character.identity;
-  const isCaster =
-    MAGIC_POVOLANI.includes(povolani) && !(povolani === 'hranicar' && uroven < 2);
+  const { povolani } = character.identity;
+  const isCaster = maMagenergii(character);
   const { strelna, ucStrelba, munice } = d;
   const postih = d.postihZraneni + d.postihNalozeni;
   const magTabulka = magenergieZTabulky(character);
@@ -180,7 +179,13 @@ export function BojScreen({ store }: { store: CharacterStore }) {
         <p className="note">Nic se zatím nestalo.</p>
       ) : (
         <>
-          <button type="button" className="chip" onClick={undoLast}>
+          <button
+            type="button"
+            className="chip"
+            disabled={!canUndo}
+            title={canUndo ? undefined : 'Vrátit lze jen změny provedené od otevření deníku.'}
+            onClick={undoLast}
+          >
             Vrátit poslední změnu
           </button>
           <ol className="log">

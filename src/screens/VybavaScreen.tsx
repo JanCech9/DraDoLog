@@ -14,8 +14,35 @@ import {
   type TridaZbrane,
 } from '../types/character';
 import { AMMO_TEMPLATES, catalogFor, type ItemTemplate } from '../data/catalog';
+import { signed } from './format';
 
-const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
+/**
+ * Number input for stats that can be negative (út, OZ, iniciativa).
+ * inputMode="numeric" would give iOS a keypad without a minus key, and a
+ * number input reports a lone "-" as "" - so the text being typed is kept
+ * here and pushed up only once it parses; an emptied field becomes 0 on blur.
+ * The content is selected on focus so that typing "-2" replaces the 0
+ * instead of producing the invalid "0-2".
+ */
+function SignedNumberInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const [typing, setTyping] = useState<string | null>(null);
+  return (
+    <input
+      type="number"
+      value={typing ?? value}
+      onFocus={(e) => e.currentTarget.select()}
+      onChange={(e) => {
+        const raw = e.target.value;
+        setTyping(raw);
+        if (raw !== '') onChange(Number(raw) || 0);
+      }}
+      onBlur={() => {
+        if (typing === '') onChange(0);
+        setTyping(null);
+      }}
+    />
+  );
+}
 
 const emptyForm = {
   name: '',
@@ -123,15 +150,23 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
     setForm({ ...form, dostrel: next });
   }
 
-  const numField = (label: string, key: 'sila' | 'utocnost' | 'obrana' | 'iniciativa' | 'ochrana' | 'stit') => (
+  const numField = (
+    label: string,
+    key: 'sila' | 'utocnost' | 'obrana' | 'iniciativa' | 'ochrana' | 'stit',
+    canBeNegative = false,
+  ) => (
     <label className="field" key={key}>
       <span>{label}</span>
-      <input
-        type="number"
-        inputMode="numeric"
-        value={form[key]}
-        onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) || 0 })}
-      />
+      {canBeNegative ? (
+        <SignedNumberInput value={form[key]} onChange={(n) => setForm({ ...form, [key]: n })} />
+      ) : (
+        <input
+          type="number"
+          inputMode="numeric"
+          value={form[key]}
+          onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) || 0 })}
+        />
+      )}
     </label>
   );
 
@@ -218,6 +253,115 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
           );
         })}
       </ul>
+      
+      <h2 className="heading">Přidat vlastní věc</h2>
+      <div className="field-row">
+        <label className="field field--wide">
+          <span>Název</span>
+          <input
+            value={form.name}
+            placeholder="Dlouhý meč"
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+        </label>
+      </div>
+      <div className="field-row">
+        <label className="field">
+          <span>Druh</span>
+          <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as ItemKind })}>
+            {Object.entries(ITEM_KIND_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Váha za kus ({WEIGHT_UNIT})</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={form.weight}
+            onChange={(e) => setForm({ ...form, weight: Number(e.target.value) || 0 })}
+          />
+        </label>
+        <label className="field">
+          <span>Počet</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={form.qty}
+            onChange={(e) => setForm({ ...form, qty: Number(e.target.value) || 0 })}
+          />
+        </label>
+      </div>
+
+      {form.kind === 'zbran' && (
+        <div className="field-row">
+          {numField('Síla zbraně (SZ)', 'sila')}
+          {numField('Útočnost', 'utocnost', true)}
+          {numField('Obrana zbraně (OZ)', 'obrana', true)}
+          {numField('Iniciativa (rozš. souboj)', 'iniciativa', true)}
+          {tridaField}
+          <label className="field">
+            <span>Obouruční</span>
+            <input
+              type="checkbox"
+              checked={form.obourucni}
+              onChange={(e) => setForm({ ...form, obourucni: e.target.checked })}
+            />
+          </label>
+        </div>
+      )}
+
+      {form.kind === 'strelna' && (
+        <>
+          <div className="field-row">
+            {numField('Síla zbraně (SZ)', 'sila')}
+            {numField('Útočnost', 'utocnost', true)}
+            {tridaField}
+            <label className="field">
+              <span>Vrhací</span>
+              <input
+                type="checkbox"
+                checked={form.vrhaci}
+                onChange={(e) => setForm({ ...form, vrhaci: e.target.checked })}
+              />
+            </label>
+            <label className="field">
+              <span>Munice</span>
+              <select value={form.municeId} onChange={(e) => setForm({ ...form, municeId: e.target.value })}>
+                <option value="">Bez munice</option>
+                {AMMO_TEMPLATES.map((t) => (
+                  <option key={t.templateId} value={t.templateId}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="field-row">
+            {DOSTREL_ORDER.map((k, i) => (
+              <label key={k} className="field">
+                <span>{DOSTREL_LABELS[k]} dostřel</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={form.dostrel[i]}
+                  onChange={(e) => setDostrel(i, Number(e.target.value) || 0)}
+                />
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+
+      {form.kind === 'zbroj' && <div className="field-row">{numField('Kvalita zbroje (KZ)', 'ochrana')}</div>}
+      {form.kind === 'stit' && <div className="field-row">{numField('Bonus k obraně', 'stit')}</div>}
+
+      <button type="button" className="primary" onClick={submit}>
+        Přidat do batohu
+      </button>
 
       <h2 className="heading">Obchod</h2>
       <p className="note">
@@ -265,114 +409,6 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
         })}
       </ul>
 
-      <h2 className="heading">Přidat vlastní věc</h2>
-      <div className="field-row">
-        <label className="field field--wide">
-          <span>Název</span>
-          <input
-            value={form.name}
-            placeholder="Dlouhý meč"
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-        </label>
-      </div>
-      <div className="field-row">
-        <label className="field">
-          <span>Druh</span>
-          <select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as ItemKind })}>
-            {Object.entries(ITEM_KIND_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Váha za kus ({WEIGHT_UNIT})</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={form.weight}
-            onChange={(e) => setForm({ ...form, weight: Number(e.target.value) || 0 })}
-          />
-        </label>
-        <label className="field">
-          <span>Počet</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={form.qty}
-            onChange={(e) => setForm({ ...form, qty: Number(e.target.value) || 0 })}
-          />
-        </label>
-      </div>
-
-      {form.kind === 'zbran' && (
-        <div className="field-row">
-          {numField('Síla zbraně (SZ)', 'sila')}
-          {numField('Útočnost', 'utocnost')}
-          {numField('Obrana zbraně (OZ)', 'obrana')}
-          {numField('Iniciativa (rozš. souboj)', 'iniciativa')}
-          {tridaField}
-          <label className="field">
-            <span>Obouruční</span>
-            <input
-              type="checkbox"
-              checked={form.obourucni}
-              onChange={(e) => setForm({ ...form, obourucni: e.target.checked })}
-            />
-          </label>
-        </div>
-      )}
-
-      {form.kind === 'strelna' && (
-        <>
-          <div className="field-row">
-            {numField('Síla zbraně (SZ)', 'sila')}
-            {numField('Útočnost', 'utocnost')}
-            {tridaField}
-            <label className="field">
-              <span>Vrhací</span>
-              <input
-                type="checkbox"
-                checked={form.vrhaci}
-                onChange={(e) => setForm({ ...form, vrhaci: e.target.checked })}
-              />
-            </label>
-            <label className="field">
-              <span>Munice</span>
-              <select value={form.municeId} onChange={(e) => setForm({ ...form, municeId: e.target.value })}>
-                <option value="">Bez munice</option>
-                {AMMO_TEMPLATES.map((t) => (
-                  <option key={t.templateId} value={t.templateId}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <div className="field-row">
-            {DOSTREL_ORDER.map((k, i) => (
-              <label key={k} className="field">
-                <span>{DOSTREL_LABELS[k]} dostřel</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={form.dostrel[i]}
-                  onChange={(e) => setDostrel(i, Number(e.target.value) || 0)}
-                />
-              </label>
-            ))}
-          </div>
-        </>
-      )}
-
-      {form.kind === 'zbroj' && <div className="field-row">{numField('Kvalita zbroje (KZ)', 'ochrana')}</div>}
-      {form.kind === 'stit' && <div className="field-row">{numField('Bonus k obraně', 'stit')}</div>}
-
-      <button type="button" className="primary" onClick={submit}>
-        Přidat do batohu
-      </button>
     </div>
   );
 }
