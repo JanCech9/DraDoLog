@@ -106,6 +106,30 @@ assert(proctoNeovlada('zlodej', cat.find(x => x.templateId === 'stit')!) !== nul
   assert(stored.members.length === 1 && stored.members[0].importedAt === 4, 'party survives a storage round-trip');
 }
 
+// Encounter (PJ view): monsters share one initiative order with the party.
+{
+  const { emptyEncounter, addNpcs, adjustNpcHp, removeNpc, setHod, newRound, combatRows, sortRows, akce, normalizeEncounter } =
+    await import('../src/state/encounter');
+  const hrac = createCharacter(); hrac.identity.name = 'Krwell'; hrac.vlastnosti.obr = 15;
+  const druhy = createCharacter(); druhy.identity.name = 'Sindor'; druhy.vlastnosti.obr = 12;
+  const members = [{ character: druhy, importedAt: 1 }, { character: hrac, importedAt: 2 }];
+  let e = addNpcs(emptyEncounter(), { name: 'Skřet', hp: 8, uc: '5', oc: 3, iniciativa: 0 }, 2);
+  e = addNpcs(e, { name: 'Skřet', hp: 8, uc: '5', oc: 3, iniciativa: 0 });
+  assert(e.npcs.map((n) => n.name).join() === 'Skřet 1,Skřet 2,Skřet 3', 'more of a kind get numbered');
+  const [s1, s2] = e.npcs;
+  e = adjustNpcHp(adjustNpcHp(e, s1.id, -20), s2.id, 5);
+  assert(e.npcs[0].hp.current === 0 && e.npcs[1].hp.current === 8, 'npc hp stays within 0…max');
+  e = setHod(setHod(setHod(setHod(e, s2.id, 6), hrac.id, 4), druhy.id, 4), s1.id, 1);
+  const order = sortRows(combatRows(members, e), 'iniciativa').map((r) => r.name);
+  assert(order.join() === 'Skřet 2,Krwell,Sindor,Skřet 1,Skřet 3', `initiative: roll + modifier, tie → obratnost (got ${order})`);
+  assert(akce(0) === 0 && akce(6) === 2 && akce(7) === 4 && akce(13) === 6, 'akce podle iniciativy');
+  const stored = normalizeEncounter(JSON.parse(JSON.stringify(e)))!;
+  assert(stored.npcs.length === 3 && stored.hody[s2.id] === 6, 'encounter survives a storage round-trip');
+  e = removeNpc(e, s2.id);
+  assert(e.npcs.length === 2 && !(s2.id in e.hody), 'removeNpc drops its roll too');
+  assert(Object.keys(newRound(e).hody).length === 0 && newRound(e).npcs.length === 2, 'new round clears rolls, keeps monsters');
+}
+
 // Data integrity
 const ids = new Set<string>();
 for (const tpl of cat) { if (ids.has(tpl.templateId)) throw new Error('dup templateId ' + tpl.templateId); ids.add(tpl.templateId); }
