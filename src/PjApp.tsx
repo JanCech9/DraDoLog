@@ -1,12 +1,11 @@
 import { useRef, useState, type DragEvent } from 'react';
 import { useParty, type ImportResult } from './state/useParty';
-import type { PartyMember } from './state/party';
-import { derive } from './rules/derived';
+import { useEncounter } from './state/useEncounter';
+import { combatRows, sortRows, type Order } from './state/encounter';
 import { CharacterCard } from './screens/pj/CharacterCard';
 import { PartyTable } from './screens/pj/PartyTable';
+import { NpcForm } from './screens/pj/NpcForm';
 import { InfoButton } from './components/InfoDialog';
-
-type Order = 'nacteni' | 'jmeno' | 'iniciativa' | 'zivoty';
 
 const ORDERS: Array<{ id: Order; label: string }> = [
   { id: 'nacteni', label: 'podle načtení' },
@@ -14,22 +13,6 @@ const ORDERS: Array<{ id: Order; label: string }> = [
   { id: 'iniciativa', label: 'podle iniciativy' },
   { id: 'zivoty', label: 'podle životů' },
 ];
-
-const collator = new Intl.Collator('cs');
-
-function sorted(members: PartyMember[], order: Order): PartyMember[] {
-  const list = [...members];
-  switch (order) {
-    case 'jmeno':
-      return list.sort((a, b) => collator.compare(a.character.identity.name, b.character.identity.name));
-    case 'iniciativa':
-      return list.sort((a, b) => derive(b.character).iniciativa - derive(a.character).iniciativa);
-    case 'zivoty':
-      return list.sort((a, b) => a.character.hp.current - b.character.hp.current);
-    default:
-      return list;
-  }
-}
 
 function describe(result: ImportResult): string {
   const parts: string[] = [];
@@ -40,6 +23,7 @@ function describe(result: ImportResult): string {
 
 export default function PjApp() {
   const { party, importFiles, remove, clear } = useParty();
+  const fight = useEncounter();
   const [order, setOrder] = useState<Order>('nacteni');
   const [dragging, setDragging] = useState(false);
   const [status, setStatus] = useState('');
@@ -68,7 +52,13 @@ export default function PjApp() {
     }
   }
 
-  const members = sorted(party.members, order);
+  function endFight() {
+    if (confirm('Ukončit boj? Nestvůry a hody na iniciativu se smažou, družina zůstane.')) fight.end();
+  }
+
+  const { npcs, hody } = fight.encounter;
+  const rows = sortRows(combatRows(party.members, fight.encounter), order);
+  const inFight = npcs.length > 0 || Object.keys(hody).length > 0;
 
   return (
     <div
@@ -116,7 +106,7 @@ export default function PjApp() {
       <main className="screen">
         {status && <p className="note status">{status}</p>}
 
-        {party.members.length === 0 ? (
+        {party.members.length === 0 && (
           <section className="dropzone">
             <p className="dropzone__title">Družina je prázdná</p>
             <p className="note">
@@ -124,16 +114,36 @@ export default function PjApp() {
               nebo je vyber přes <strong>Načíst postavy</strong>. Novější soubor stejné postavy ten starší nahradí.
             </p>
           </section>
-        ) : (
-          <>
-            <h2 className="heading">Družina v boji</h2>
-            <PartyTable members={members} />
+        )}
 
+        <div className="heading-row">
+          <h2 className="heading">Družina v boji</h2>
+          {inFight && (
+            <span className="heading-row__actions">
+              <button type="button" className="chip chip--on" onClick={fight.nextRound}>
+                Nové kolo
+              </button>
+              <button type="button" className="chip chip--quiet" onClick={endFight}>
+                Ukončit boj
+              </button>
+            </span>
+          )}
+        </div>
+        {rows.length > 0 && (
+          <PartyTable rows={rows} onRoll={fight.roll} onNpcHp={fight.adjustHp} onNpcRemove={fight.remove} />
+        )}
+        <NpcForm onAdd={fight.add} />
+
+        {party.members.length > 0 && (
+          <>
             <h2 className="heading">Postavy</h2>
             <div className="cards">
-              {members.map((m) => (
-                <CharacterCard key={m.character.id} member={m} onRemove={() => remove(m.character.id)} />
-              ))}
+              {rows.map(
+                (row) =>
+                  row.kind === 'postava' && (
+                    <CharacterCard key={row.id} member={row.member} onRemove={() => remove(row.id)} />
+                  ),
+              )}
             </div>
             <p className="note">
               Čísla jsou z okamžiku, kdy hráč soubor poslal. Pro čerstvá čísla si nech poslat nový – přetáhni ho sem.
