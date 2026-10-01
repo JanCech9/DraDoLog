@@ -99,6 +99,11 @@ All numbers in `src/rules/tables.ts` are **placeholders**. Copy the real tables 
 
 To add content, extend the arrays in `src/data/` (items, abilities, spells).
 
+## Future developement
+
+* Multiple characters. One slot means export/import to switch campaigns or try a build. A drd-sheet:characters map + active id; the migration is small because id already exists.
+* Live sync, when you get to it: a tiny C# minimal API (PUT /party/{room}/{id}, GET /party/{room}) polled every ~10 s. The id and version fields already give you the keys.
+
 ## Status
 
 Personal project, work in progress. Alchemist recipe brewing is implemented in the store (`brew`) but not yet exposed in the UI.
