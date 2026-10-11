@@ -7,7 +7,6 @@ import type {
   NewItem,
   Presvedceni,
   RecipeTemplate,
-  Strelna,
 } from '../types/character';
 import { PRESVEDCENI_LABELS } from '../types/character';
 import { CATALOG, findTemplate, fromTemplate, type ItemTemplate } from '../data/catalog';
@@ -48,8 +47,8 @@ function apply(character: Character, recipe: Recipe): Character | null {
   return recipe(draft) === false ? null : draft;
 }
 
-function log(draft: Character, kind: LogKind, text: string, delta?: number, ref?: string): void {
-  draft.log.unshift({ id: newId(), ts: Date.now(), kind, text, delta, ref });
+function log(draft: Character, kind: LogKind, text: string, delta?: number): void {
+  draft.log.unshift({ id: newId(), ts: Date.now(), kind, text, delta });
   draft.log = draft.log.slice(0, 100);
 }
 
@@ -66,8 +65,8 @@ function normalizePresvedceni(value: unknown): Presvedceni {
 
 /**
  * v2 → v3: weapons used to store a single `utocnost` that acted as SZ; v3
- * splits it into sila (SZ), utocnost (út) and adds trida / obourucni. Items
- * that came from the catalog get their real numbers back from it.
+ * keeps it as sila (SZ) and adds trida / obourucni. Items that came from the
+ * catalog get their real numbers back from it.
  */
 function migrateItem(raw: Record<string, unknown>, velikost: 'A' | 'B' | 'C'): Item {
   const template = findTemplate(typeof raw.templateId === 'string' ? raw.templateId : undefined, velikost);
@@ -93,7 +92,6 @@ function migrateItem(raw: Record<string, unknown>, velikost: 'A' | 'B' | 'C'): I
         kind: 'zbran',
         equipped,
         sila: typeof raw.sila === 'number' ? raw.sila : Number(raw.utocnost) || 0,
-        utocnost: typeof raw.sila === 'number' ? Number(raw.utocnost) || 0 : 0,
         obrana: Number(raw.obrana) || 0,
         iniciativa: Number(raw.iniciativa) || 0,
         trida: raw.trida === 'lehka' || raw.trida === 'tezka' ? raw.trida : 'stredni',
@@ -105,9 +103,6 @@ function migrateItem(raw: Record<string, unknown>, velikost: 'A' | 'B' | 'C'): I
         kind: 'strelna',
         equipped,
         sila: typeof raw.sila === 'number' ? raw.sila : Number(raw.utocnost) || 0,
-        utocnost: typeof raw.sila === 'number' ? Number(raw.utocnost) || 0 : 0,
-        dostrel: Array.isArray(raw.dostrel) ? (raw.dostrel.map(Number) as [number, number, number]) : [0, 0, 0],
-        ...(typeof raw.municeId === 'string' ? { municeId: raw.municeId } : {}),
         trida: raw.trida === 'lehka' || raw.trida === 'tezka' ? raw.trida : 'stredni',
         vrhaci: raw.vrhaci === true,
       };
@@ -120,11 +115,27 @@ function migrateItem(raw: Record<string, unknown>, velikost: 'A' | 'B' | 'C'): I
   }
 }
 
+/**
+ * v3 → v4: útočnost, range bands (dostřel) and ammo tracking are gone. The
+ * stale fields are dropped from items, and "Výstřel" log entries become plain
+ * notes.
+ */
+function stripV3(c: StoredCharacter): void {
+  c.inventory = (Array.isArray(c.inventory) ? c.inventory : []).map((item) => {
+    const { utocnost: _ut, dostrel: _dostrel, municeId: _munice, ...rest } = item as Item & Record<string, unknown>;
+    return rest as Item;
+  });
+  c.log = c.log.map((entry) => {
+    const { ref: _ref, ...rest } = entry as typeof entry & { ref?: string };
+    return (rest.kind as string) === 'ammo' ? { ...rest, kind: 'note' } : rest;
+  });
+}
+
 /** Validate and migrate a stored/imported character; null when unusable. */
 export function normalizeCharacter(parsed: unknown): Character | null {
   const c = parsed as StoredCharacter | null;
   if (!c || typeof c !== 'object' || typeof c.version !== 'number') return null;
-  if (c.version > 3) return null;
+  if (c.version > 4) return null;
   if (!c.identity || typeof c.identity !== 'object') return null;
 
   if (typeof c.id !== 'string' || !c.id) c.id = newId();
@@ -142,6 +153,10 @@ export function normalizeCharacter(parsed: unknown): Character | null {
       migrateItem(i as unknown as Record<string, unknown>, velikost),
     );
     c.version = 3;
+  }
+  if (c.version < 4) {
+    stripV3(c);
+    c.version = 4;
   }
   return c as Character;
 }
@@ -185,7 +200,7 @@ export function useCharacter() {
   /**
    * Perform an undoable action: the state before it is remembered and every
    * action logs what it did, so "undo" always reverts the top log entry.
-   * A recipe returns false when nothing happened (not enough money, no ammo…)
+   * A recipe returns false when nothing happened (not enough money, no magenergie…)
    * so that there is nothing to undo and nothing in the log.
    */
   const act = useCallback((recipe: Recipe) => {
@@ -290,7 +305,7 @@ export function useCharacter() {
     [update],
   );
 
-  /** One item per kind can be worn at a time: one zbraň, one střelná, one zbroj, one štít. */
+  /** One item per kind can be worn at a time: one zbraň, one střelná / vrhací, one zbroj, one štít. */
   const toggleEquipped = useCallback(
     (id: string) =>
       update((draft) => {
@@ -303,22 +318,6 @@ export function useCharacter() {
         target.equipped = next;
       }),
     [update],
-  );
-
-  /** Fire the equipped ranged weapon: uses one piece of its ammo. */
-  const shoot = useCallback(
-    () =>
-      act((draft) => {
-        const weapon = draft.inventory.find(
-          (i): i is Strelna => i.kind === 'strelna' && i.equipped,
-        );
-        if (!weapon?.municeId) return false;
-        const ammo = draft.inventory.find((i) => i.templateId === weapon.municeId && i.qty > 0);
-        if (!ammo) return false;
-        ammo.qty -= 1;
-        log(draft, 'ammo', `Výstřel: ${weapon.name}`, -1, weapon.municeId);
-      }),
-    [act],
   );
 
   /** Cast a spell; `magy` overrides the cost for spells with variable magenergie. */
@@ -500,7 +499,6 @@ export function useCharacter() {
     removeItem,
     setQty,
     toggleEquipped,
-    shoot,
     castSpell,
     learnSpell,
     forgetSpell,

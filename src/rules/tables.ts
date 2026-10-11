@@ -2,13 +2,10 @@
 // Page numbers refer to the printed book. Everything the sheet computes
 // comes from here; rules/derived.ts and rules/abilities.ts only combine them.
 
-import type { Dostrel, Povolani, Presvedceni, Rasa, Vlastnost } from '../types/character';
+import type { Povolani, Presvedceni, Rasa, Vlastnost } from '../types/character';
 
 /** Label for the weight unit used across the inventory screen (1 mn ≈ 50 g). */
 export const WEIGHT_UNIT = 'mn';
-
-/** Label for the distance unit used for ranged weapons (1 sáh ≈ 1 m). */
-export const RANGE_UNIT = 'sáhů';
 
 /** Tabulka postihů a bonusů (str. 27): [minValue, maxValue, bonus]. */
 export const BONUS_TABLE: ReadonlyArray<readonly [number, number, number]> = [
@@ -79,13 +76,6 @@ export const ZATIZENI_BOJ: Record<ZatizeniLevel, number> = {
   stredne: 0,
   tezce: -1,
   pretizen: -1,
-};
-
-/** ÚČ modifier for shooting at each range band (str. 75). */
-export const DOSTREL_MOD: Record<Dostrel, number> = {
-  maly: 1,
-  stredni: 0,
-  velky: -1,
 };
 
 /** Tabulka zkušenosti (str. 32): [zt needed, training cost in zl] per level, index 0 = level 1. */

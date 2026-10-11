@@ -68,7 +68,7 @@ function PlayerGuide() {
     <>
       <p className="info__lead">
         Digitální deník postavy pro <strong>Dračí doupě 1.6</strong> (Pravidla pro začátečníky). Je dělaný pro mobil
-        u stolu: kostky házíte normálně, deník hlídá čísla – životy, magenergii, munici, peníze a zkušenosti.
+        u stolu: kostky házíte normálně, deník hlídá čísla – životy, magenergii, peníze a zkušenosti.
       </p>
 
       <Section title="Rychlý start">
@@ -80,11 +80,11 @@ function PlayerGuide() {
             <strong>Výbava</strong> – přidej zbraně, zbroj a věci z katalogu (nebo vlastní) a nasaď je.
           </li>
           <li>
-            <strong>Boj</strong> – během hry už jen ťukáš: životy, magenergie, střelba.
+            <strong>Boj</strong> – během hry už jen ťukáš: životy a magenergie.
           </li>
         </ol>
         <p>
-          Útočné a obranné číslo, iniciativu, bonusy ani naložení nezapisuješ – deník je počítá sám z vlastností a
+          Útočné číslo (i na dálku), obranné číslo, iniciativu, bonusy ani naložení nezapisuješ – deník je počítá sám z vlastností a
           výbavy.
         </p>
       </Section>
@@ -96,17 +96,16 @@ function PlayerGuide() {
           <dt>Schopnosti</dt>
           <dd>Schopnosti povolání podle úrovně, šance v %, kouzla (učení a sesílání) a lučba pro alchymisty.</dd>
           <dt>Výbava</dt>
-          <dd>Inventář, munice, peníze, obchod a nosnost. Peníze se počítají v měďácích a také něco váží.</dd>
+          <dd>Inventář, peníze, obchod a nosnost. Peníze se počítají v měďácích a také něco váží.</dd>
           <dt>Boj</dt>
-          <dd>Velké počítadlo životů, ÚČ, OČ, iniciativa, střelba s odečtem munice, magenergie a odpočinek.</dd>
+          <dd>Velké počítadlo životů, ÚČ, ÚČ na dálku, OČ, iniciativa, magenergie a odpočinek.</dd>
         </dl>
       </Section>
 
       <Section title="Ťukl jsem vedle">
         <p>
           V záložce <strong>Boj</strong> dole jsou <em>Poslední změny</em>. Tlačítko{' '}
-          <strong>Vrátit poslední změnu</strong> vrátí poslední zápis – životy, magenergii, zkušenosti, peníze nebo
-          munici – a dá se mačkat i opakovaně. Deník si pamatuje posledních 100 změn.
+          <strong>Vrátit poslední změnu</strong> vrátí poslední zápis – životy, magenergii, zkušenosti nebo peníze – a dá se mačkat i opakovaně. Deník si pamatuje posledních 100 změn.
         </p>
       </Section>
 
@@ -160,7 +159,7 @@ function PjGuide() {
         <dl>
           <dt>Družina v boji</dt>
           <dd>
-            Řádek na postavu: životy (barevně při zranění a vyřazení), ÚČ, OČ, iniciativa, střelba podle dostřelu,
+            Řádek na postavu: životy (barevně při zranění a vyřazení), ÚČ, OČ, iniciativa, ÚČ na dálku,
             magenergie, postih a naložení. Řazení přepneš v poli <strong>Pořadí</strong>.
           </dd>
           <dt>Postavy</dt>

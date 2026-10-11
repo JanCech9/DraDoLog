@@ -3,11 +3,9 @@ import type { PartyMember } from '../../state/party';
 import { derive } from '../../rules/derived';
 import { maMagenergii, sance, schopnostiFor, urovenInfo } from '../../rules/abilities';
 import { formatMoney } from '../../rules/money';
-import { RANGE_UNIT, WEIGHT_UNIT, ZATIZENI_LABELS } from '../../rules/tables';
+import { WEIGHT_UNIT, ZATIZENI_LABELS } from '../../rules/tables';
 import { KOUZLA } from '../../data/spells';
 import {
-  DOSTREL_LABELS,
-  DOSTREL_ORDER,
   ITEM_KIND_LABELS,
   POVOLANI_LABELS,
   PRESVEDCENI_LABELS,
@@ -25,7 +23,6 @@ export function CharacterCard({ member, onRemove }: { member: PartyMember; onRem
   const [open, setOpen] = useState(false);
   const isCaster = maMagenergii(c);
   const postih = d.postihZraneni + d.postihNalozeni;
-  const { strelna, ucStrelba } = d;
   const lvl = urovenInfo(c);
   const schopnosti = schopnostiFor(c);
   const znamaKouzla = KOUZLA.filter((k) => c.kouzla.includes(k.id));
@@ -76,20 +73,17 @@ export function CharacterCard({ member, onRemove }: { member: PartyMember; onRem
 
       <p className="note">
         {d.zbran
-          ? `${d.zbran.name} (SZ ${d.zbran.sila}, út ${signed(d.zbran.utocnost)}, OZ ${signed(d.zbran.obrana)})`
+          ? `${d.zbran.name} (SZ ${d.zbran.sila}, OZ ${signed(d.zbran.obrana)})`
           : 'Beze zbraně (OZ −3)'}
         {d.rodovaZbran ? ' · rodová +1' : ''}
         {d.zbroj ? ` · ${d.zbroj.name} (KZ ${d.kz})` : ' · bez zbroje'}
         {d.stit ? (d.stitBlokovan ? ' · štít blokován' : ` · štít +${d.stitBonus}`) : ''}
       </p>
 
-      {strelna && ucStrelba && (
+      {d.strelna && d.ucDalka !== undefined && (
         <p className="note">
-          {strelna.name}: ÚČ{' '}
-          {DOSTREL_ORDER.map(
-            (k, i) => `${ucStrelba[k]} (${DOSTREL_LABELS[k].toLowerCase()} do ${strelna.dostrel[i]} ${RANGE_UNIT})`,
-          ).join(' · ')}
-          {d.munice !== undefined ? ` · munice ${d.munice}` : ''}
+          Na dálku: {d.strelna.name} (SZ {d.strelna.sila}) · ÚČ na dálku{' '}
+          <strong className="inline-strong">{d.ucDalka}</strong>
         </p>
       )}
 

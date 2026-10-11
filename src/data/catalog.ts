@@ -24,7 +24,6 @@ function zbran(
   name: string,
   trida: TridaZbrane,
   sila: number,
-  utocnost: number,
   obrana: number,
   delka: string,
   weight: number,
@@ -37,7 +36,6 @@ function zbran(
     name,
     trida,
     sila,
-    utocnost,
     obrana,
     delka,
     weight,
@@ -52,11 +50,9 @@ function strelna(
   name: string,
   trida: TridaZbrane,
   sila: number,
-  utocnost: number,
-  dostrel: [number, number, number],
   weight: number,
   price: number,
-  opts: { municeId?: string; vrhaci?: boolean; tezkaKuse?: boolean } = {},
+  opts: { vrhaci?: boolean; tezkaKuse?: boolean } = {},
 ): StrelnaT {
   return {
     templateId,
@@ -64,12 +60,9 @@ function strelna(
     name,
     trida,
     sila,
-    utocnost,
-    dostrel,
     weight,
     price,
     vrhaci: opts.vrhaci ?? false,
-    ...(opts.municeId ? { municeId: opts.municeId } : {}),
     ...(opts.tezkaKuse ? { tezkaKuse: true } : {}),
   };
 }
@@ -77,65 +70,65 @@ function strelna(
 // --- Tabulka zbraní pro boj tváří v tvář (str. 68) ---------------------------
 const ZBRANE: readonly ZbranT[] = [
   // jednoruční - lehké
-  zbran('dyka', 'Dýka', 'lehka', 2, 0, -2, '1', 5, zl(1)),
-  zbran('tesak', 'Tesák', 'lehka', 3, -1, -2, '1', 12, zl(4)),
-  zbran('kratky-mec', 'Krátký meč', 'lehka', 4, -1, -1, '1', 20, zl(16)),
-  zbran('obusek', 'Obušek', 'lehka', 3, -2, -2, '1', 8, st(2)),
-  zbran('palcat', 'Palcát', 'lehka', 3, 1, -1, '1', 20, zl(8)),
+  zbran('dyka', 'Dýka', 'lehka', 2, -2, '1', 5, zl(1)),
+  zbran('tesak', 'Tesák', 'lehka', 3, -2, '1', 12, zl(4)),
+  zbran('kratky-mec', 'Krátký meč', 'lehka', 4, -1, '1', 20, zl(16)),
+  zbran('obusek', 'Obušek', 'lehka', 3, -2, '1', 8, st(2)),
+  zbran('palcat', 'Palcát', 'lehka', 3, -1, '1', 20, zl(8)),
   // jednoruční - střední
-  zbran('savle', 'Šavle', 'stredni', 4, 2, 1, '1', 25, zl(32)),
-  zbran('siroky-mec', 'Široký meč', 'stredni', 5, 0, 0, '1', 30, zl(24)),
-  zbran('sekera', 'Sekera', 'stredni', 3, 1, -1, '1', 30, st(10)),
-  zbran('kyj', 'Kyj', 'stredni', 3, 2, -1, '1', 35, st(8)),
+  zbran('savle', 'Šavle', 'stredni', 4, 1, '1', 25, zl(32)),
+  zbran('siroky-mec', 'Široký meč', 'stredni', 5, 0, '1', 30, zl(24)),
+  zbran('sekera', 'Sekera', 'stredni', 3, -1, '1', 30, st(10)),
+  zbran('kyj', 'Kyj', 'stredni', 3, -1, '1', 35, st(8)),
   // jednoruční - těžké
-  zbran('mec-bastard', 'Meč bastard', 'tezka', 6, 0, 1, '1', 40, zl(32)),
-  zbran('dlouhy-mec', 'Dlouhý meč', 'tezka', 7, -1, 0, '1–2', 50, zl(40)),
-  zbran('valecne-kladivo', 'Válečné kladivo', 'tezka', 5, 2, -1, '1', 50, zl(2)),
-  zbran('remdih', 'Řemdih', 'tezka', 4, 3, -2, '1–2', 50, zl(1)),
+  zbran('mec-bastard', 'Meč bastard', 'tezka', 6, 1, '1', 40, zl(32)),
+  zbran('dlouhy-mec', 'Dlouhý meč', 'tezka', 7, 0, '1–2', 50, zl(40)),
+  zbran('valecne-kladivo', 'Válečné kladivo', 'tezka', 5, -1, '1', 50, zl(2)),
+  zbran('remdih', 'Řemdih', 'tezka', 4, -2, '1–2', 50, zl(1)),
   // obouruční - lehké
-  zbran('hul-okovana', 'Hůl okovaná', 'lehka', 5, -1, 1, '2', 20, st(7), { obourucni: true }),
-  zbran('dve-dyky', 'Dvě dýky', 'lehka', 3, 1, 2, '1', 10, zl(2), { obourucni: true }),
+  zbran('hul-okovana', 'Hůl okovaná', 'lehka', 5, 1, '2', 20, st(7), { obourucni: true }),
+  zbran('dve-dyky', 'Dvě dýky', 'lehka', 3, 2, '1', 10, zl(2), { obourucni: true }),
   // obouruční - střední
-  zbran('vidle', 'Vidle', 'stredni', 4, 0, 1, '2', 50, zl(1), { obourucni: true }),
-  zbran('kopi', 'Kopí', 'stredni', 5, 0, 1, '1–2', 60, zl(1), { obourucni: true }),
-  zbran('valecna-sekera', 'Válečná sekera', 'stredni', 4, 3, -1, '1–2', 75, zl(4), { obourucni: true, ztraciIniciativu: true }),
-  zbran('sudlice', 'Sudlice', 'stredni', 5, 1, 1, '2', 75, zl(1), { obourucni: true, ztraciIniciativu: true }),
-  zbran('pika', 'Píka', 'stredni', 5, 2, 1, '2–3', 70, zl(1) + st(5), { obourucni: true, ztraciIniciativu: true }),
-  zbran('tesak-a-dyka', 'Tesák a dýka', 'stredni', 4, 0, 2, '1', 17, zl(5), { obourucni: true }),
-  zbran('kratky-mec-a-dyka', 'Krátký meč a dýka', 'stredni', 5, 0, 3, '1', 25, zl(17), { obourucni: true }),
+  zbran('vidle', 'Vidle', 'stredni', 4, 1, '2', 50, zl(1), { obourucni: true }),
+  zbran('kopi', 'Kopí', 'stredni', 5, 1, '1–2', 60, zl(1), { obourucni: true }),
+  zbran('valecna-sekera', 'Válečná sekera', 'stredni', 4, -1, '1–2', 75, zl(4), { obourucni: true, ztraciIniciativu: true }),
+  zbran('sudlice', 'Sudlice', 'stredni', 5, 1, '2', 75, zl(1), { obourucni: true, ztraciIniciativu: true }),
+  zbran('pika', 'Píka', 'stredni', 5, 1, '2–3', 70, zl(1) + st(5), { obourucni: true, ztraciIniciativu: true }),
+  zbran('tesak-a-dyka', 'Tesák a dýka', 'stredni', 4, 2, '1', 17, zl(5), { obourucni: true }),
+  zbran('kratky-mec-a-dyka', 'Krátký meč a dýka', 'stredni', 5, 3, '1', 25, zl(17), { obourucni: true }),
   // obouruční - těžké
-  zbran('cep', 'Cep', 'tezka', 5, 4, -1, '2', 70, st(8), { obourucni: true, ztraciIniciativu: true }),
-  zbran('halapartna', 'Halapartna', 'tezka', 4, 6, 2, '2', 85, zl(4), { obourucni: true, ztraciIniciativu: true }),
-  zbran('obourucni-mec', 'Obouruční meč', 'tezka', 7, 1, -1, '1–2', 85, zl(56), { obourucni: true, ztraciIniciativu: true }),
-  zbran('tezky-kyj', 'Těžký kyj', 'tezka', 5, 4, -1, '1–2', 90, zl(2), { obourucni: true, ztraciIniciativu: true }),
-  zbran('trojzubec', 'Trojzubec', 'tezka', 6, 2, 2, '1–2', 95, zl(1), { obourucni: true, ztraciIniciativu: true }),
-  zbran('dve-savle', 'Dvě šavle', 'tezka', 8, -2, 3, '1', 50, zl(64), { obourucni: true }),
-  zbran('siroky-mec-a-dyka', 'Široký meč a dýka', 'tezka', 5, -1, 2, '1', 35, zl(25), { obourucni: true }),
-  zbran('siroky-mec-a-tesak', 'Široký meč a tesák', 'tezka', 6, -2, 2, '1', 42, zl(28), { obourucni: true }),
+  zbran('cep', 'Cep', 'tezka', 5, -1, '2', 70, st(8), { obourucni: true, ztraciIniciativu: true }),
+  zbran('halapartna', 'Halapartna', 'tezka', 4, 2, '2', 85, zl(4), { obourucni: true, ztraciIniciativu: true }),
+  zbran('obourucni-mec', 'Obouruční meč', 'tezka', 7, -1, '1–2', 85, zl(56), { obourucni: true, ztraciIniciativu: true }),
+  zbran('tezky-kyj', 'Těžký kyj', 'tezka', 5, -1, '1–2', 90, zl(2), { obourucni: true, ztraciIniciativu: true }),
+  zbran('trojzubec', 'Trojzubec', 'tezka', 6, 2, '1–2', 95, zl(1), { obourucni: true, ztraciIniciativu: true }),
+  zbran('dve-savle', 'Dvě šavle', 'tezka', 8, 3, '1', 50, zl(64), { obourucni: true }),
+  zbran('siroky-mec-a-dyka', 'Široký meč a dýka', 'tezka', 5, 2, '1', 35, zl(25), { obourucni: true }),
+  zbran('siroky-mec-a-tesak', 'Široký meč a tesák', 'tezka', 6, 2, '1', 42, zl(28), { obourucni: true }),
   // improvizované
-  zbran('pochoden-zbran', 'Pochodeň (jako zbraň)', 'lehka', 4, -4, -1, '1', 10, md(1)),
+  zbran('pochoden-zbran', 'Pochodeň (jako zbraň)', 'lehka', 4, -1, '1', 10, md(1)),
 ];
 
 // --- Tabulka zbraní pro střelecký souboj (str. 75) ---------------------------
 const STRELNE: readonly StrelnaT[] = [
   // střelné
-  strelna('kratky-luk', 'Krátký luk', 'stredni', 4, 0, [10, 20, 30], 7, zl(4), { municeId: 'sipy' }),
-  strelna('dlouhy-luk', 'Dlouhý luk', 'stredni', 5, 1, [15, 30, 50], 10, zl(16), { municeId: 'sipy' }),
-  strelna('lehka-kuse', 'Lehká kuše', 'stredni', 4, 1, [15, 27, 40], 20, zl(32), { municeId: 'sipky' }),
-  strelna('tezka-kuse', 'Těžká kuše', 'tezka', 6, 2, [19, 35, 55], 60, zl(44), { municeId: 'sipky', tezkaKuse: true }),
-  strelna('prak', 'Prak', 'lehka', 4, -1, [9, 16, 25], 5, st(1), { municeId: 'kameny' }),
+  strelna('kratky-luk', 'Krátký luk', 'stredni', 4, 7, zl(4)),
+  strelna('dlouhy-luk', 'Dlouhý luk', 'stredni', 5, 10, zl(16)),
+  strelna('lehka-kuse', 'Lehká kuše', 'stredni', 4, 20, zl(32)),
+  strelna('tezka-kuse', 'Těžká kuše', 'tezka', 6, 60, zl(44), { tezkaKuse: true }),
+  strelna('prak', 'Prak', 'lehka', 4, 5, st(1)),
   // vrhací - lehké
-  strelna('dyka-vrh', 'Dýka (vrhací)', 'lehka', 2, 0, [5, 9, 12], 5, zl(1), { vrhaci: true }),
-  strelna('hvezdice', 'Hvězdice', 'lehka', 3, -1, [3, 7, 11], 3, st(6), { vrhaci: true }),
-  strelna('kamen', 'Kámen', 'lehka', 1, 0, [7, 11, 15], 7, 0, { vrhaci: true }),
-  strelna('flakonek-vrh', 'Flakónek (svěcená voda, lektvar)', 'lehka', 0, 0, [5, 9, 13], 5, 0, { vrhaci: true }),
-  strelna('lahev-vrh', 'Lahev (olej, voda)', 'lehka', 0, 1, [4, 7, 10], 15, 0, { vrhaci: true }),
-  strelna('pochoden-vrh', 'Pochodeň (vrhací)', 'lehka', 0, 1, [4, 7, 10], 10, md(1), { vrhaci: true }),
+  strelna('dyka-vrh', 'Dýka (vrhací)', 'lehka', 2, 5, zl(1), { vrhaci: true }),
+  strelna('hvezdice', 'Hvězdice', 'lehka', 3, 3, st(6), { vrhaci: true }),
+  strelna('kamen', 'Kámen', 'lehka', 1, 7, 0, { vrhaci: true }),
+  strelna('flakonek-vrh', 'Flakónek (svěcená voda, lektvar)', 'lehka', 0, 5, 0, { vrhaci: true }),
+  strelna('lahev-vrh', 'Lahev (olej, voda)', 'lehka', 0, 15, 0, { vrhaci: true }),
+  strelna('pochoden-vrh', 'Pochodeň (vrhací)', 'lehka', 0, 10, md(1), { vrhaci: true }),
   // vrhací - střední
-  strelna('kopi-vrh', 'Kopí (vrhací)', 'stredni', 5, 0, [5, 10, 15], 60, zl(1), { vrhaci: true }),
-  strelna('ostep', 'Oštěp', 'stredni', 5, 1, [6, 14, 23], 12, st(4), { vrhaci: true }),
-  strelna('sekera-vrh', 'Sekera (vrhací)', 'stredni', 3, 1, [4, 8, 12], 30, st(10), { vrhaci: true }),
-  strelna('vidle-vrh', 'Vidle (vrhací)', 'stredni', 4, 0, [3, 5, 7], 50, zl(1), { vrhaci: true }),
+  strelna('kopi-vrh', 'Kopí (vrhací)', 'stredni', 5, 60, zl(1), { vrhaci: true }),
+  strelna('ostep', 'Oštěp', 'stredni', 5, 12, st(4), { vrhaci: true }),
+  strelna('sekera-vrh', 'Sekera (vrhací)', 'stredni', 3, 30, st(10), { vrhaci: true }),
+  strelna('vidle-vrh', 'Vidle (vrhací)', 'stredni', 4, 50, zl(1), { vrhaci: true }),
 ];
 
 // --- Munice (str. 75) --------------------------------------------------------
@@ -226,8 +219,8 @@ const ALCHYMIE: readonly ItemTemplate[] = [
   { templateId: 'jed-melenova-pomsta', kind: 'ostatni', name: 'Jed: Melenova pomsta', weight: 5, price: 0, stackable: true, shop: false },
   { templateId: 'bomba', kind: 'ostatni', name: 'Bomba', weight: 200, price: 0, stackable: true, shop: false },
   { templateId: 'ohniva-hlina', kind: 'ostatni', name: 'Ohnivá hlína', weight: 10, price: 0, stackable: true, shop: false },
-  { ...strelna('hvezdice-bumerang', 'Hvězdice-bumerang', 'lehka', 3, -1, [3, 7, 11], 3, 0, { vrhaci: true }), shop: false },
-  { ...zbran('zubate-ostri', 'Zubaté ostří', 'lehka', 1, 3, -2, '1', 5, 0), shop: false },
+  { ...strelna('hvezdice-bumerang', 'Hvězdice-bumerang', 'lehka', 3, 3, 0, { vrhaci: true }), shop: false },
+  { ...zbran('zubate-ostri', 'Zubaté ostří', 'lehka', 1, -2, '1', 5, 0), shop: false },
 ];
 
 /** Full catalog with armour and shield sized for the given size class. */
@@ -253,13 +246,6 @@ export function catalogFor(velikost: Velikost): readonly ItemTemplate[] {
 
 /** Catalog for a size-B character (weights for A/C differ only for armour). */
 export const CATALOG: readonly ItemTemplate[] = catalogFor('B');
-
-const AMMO_IDS = new Set(
-  CATALOG.flatMap((t) => (t.kind === 'strelna' && t.municeId ? [t.municeId] : [])),
-);
-
-/** Catalog items that some ranged weapon uses as ammo. */
-export const AMMO_TEMPLATES = CATALOG.filter((t) => AMMO_IDS.has(t.templateId));
 
 export function findTemplate(templateId: string | undefined, velikost: Velikost = 'B'): ItemTemplate | undefined {
   if (!templateId) return undefined;
