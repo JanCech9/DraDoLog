@@ -29,6 +29,19 @@ assert(d.rodovaZbran, 'meč bastard je rodová zbraň barbara');
 assert(mezVyrazeni(13, 7) === 1 && mezVyrazeni(13, 12) === 2, 'Emanuel: mez 1 při 7 žt, 2 při 12 žt');
 assert(postihBojeschopnosti(13, { current: 3, max: 12 }) === -1 && postihBojeschopnosti(13, { current: 4, max: 12 }) === 0, 'postih pod třetinou');
 
+// ÚČ na dálku: SZ + bonus za obratnost (+1 rodová), one number - no range bands, no ammo.
+{
+  const e = createCharacter(); e.identity.rasa = 'elf'; e.identity.povolani = 'hranicar';
+  e.vlastnosti = { sil: 10, obr: 16, odl: 10, int: 12, chs: 12 };
+  assert(derive(e).ucDalka === undefined, 'bez střelné zbraně není ÚČ na dálku');
+  const luk = fromTemplate(cat.find(t => t.templateId === 'dlouhy-luk')!); (luk as any).equipped = true;
+  e.inventory = [luk];
+  const de = derive(e);
+  assert(de.ucDalka === 5 + de.bonus.obr + (de.rodovaZbran ? 1 : 0), `ÚČ na dálku = SZ 5 + Obr ${de.bonus.obr} (got ${de.ucDalka})`);
+  assert(!('utocnost' in luk) && !('dostrel' in luk) && !('municeId' in luk), 'střelná zbraň nemá útočnost, dostřel ani munici');
+  assert(!('utocnost' in mec), 'zbraň nemá útočnost');
+}
+
 // Hrun: barbar Sil 19 (+4), Obr 9 (−1) → pohyblivost 19, nosnost 480, 4× = 1920
 const h = createCharacter(); h.identity.rasa = 'barbar'; h.vlastnosti = { sil: 19, obr: 9, odl: 15, int: 10, chs: 10 };
 d = derive(h);
@@ -102,6 +115,21 @@ assert(proctoNeovlada('zlodej', cat.find(x => x.templateId === 'stit')!) !== nul
   const norm = normalizeCharacter(legacy)!;
   assert(typeof norm.id === 'string' && norm.id.length > 0, 'normalize fills a missing id');
   assert(normalizeCharacter({ version: 3 }) === null, 'normalize rejects a sheet without identity');
+  assert(normalizeCharacter({ ...JSON.parse(JSON.stringify(a)), version: 5 }) === null, 'normalize rejects a newer save');
+  // v3 save: útočnost, dostřel, munice and "Výstřel" log entries are dropped on load.
+  const v3 = JSON.parse(JSON.stringify(a));
+  v3.version = 3;
+  v3.inventory = [
+    { id: 'm', kind: 'zbran', name: 'Šavle', weight: 25, qty: 1, equipped: true, sila: 4, utocnost: 2, obrana: 1, trida: 'stredni', obourucni: false, iniciativa: 0 },
+    { id: 'l', kind: 'strelna', name: 'Krátký luk', weight: 7, qty: 1, equipped: true, sila: 4, utocnost: 0, dostrel: [10, 20, 30], municeId: 'sipy', trida: 'stredni', vrhaci: false },
+    { id: 's', kind: 'ostatni', name: 'Šípy', templateId: 'sipy', weight: 2, qty: 12 },
+  ];
+  v3.log = [{ id: 'x', ts: 1, kind: 'ammo', text: 'Výstřel: Krátký luk', delta: -1, ref: 'sipy' }];
+  const v4 = normalizeCharacter(v3)!;
+  assert(v4.version === 4, 'v3 save is migrated to v4');
+  assert(v4.inventory.every((i) => !('utocnost' in i) && !('dostrel' in i) && !('municeId' in i)), 'v3 → v4 drops útočnost, dostřel, munice');
+  assert(v4.inventory.length === 3 && v4.inventory[2].qty === 12 && derive(v4).ucDalka !== undefined, 'v3 → v4 keeps the items (arrows included) and equipment');
+  assert(v4.log[0].kind === 'note' && !('ref' in v4.log[0]), 'v3 → v4 turns shot entries into notes');
   const stored = normalizeParty(JSON.parse(JSON.stringify(party)))!;
   assert(stored.members.length === 1 && stored.members[0].importedAt === 4, 'party survives a storage round-trip');
 }
@@ -134,4 +162,5 @@ assert(proctoNeovlada('zlodej', cat.find(x => x.templateId === 'stit')!) !== nul
 const ids = new Set<string>();
 for (const tpl of cat) { if (ids.has(tpl.templateId)) throw new Error('dup templateId ' + tpl.templateId); ids.add(tpl.templateId); }
 for (const r of RECEPTY) if (!ids.has(r.vysledekId)) throw new Error('recipe result missing: ' + r.vysledekId);
+assert(RECEPTY.every((r) => !('vyroba' in r)), 'recepty nemají dobu výroby – lučbu omezují jen magenergie a suroviny');
 console.log(`ok   ${cat.length} catalog items, ${KOUZLA.length} spells, ${RECEPTY.length} recipes, ${SCHOPNOSTI.length} abilities`);

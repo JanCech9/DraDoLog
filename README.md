@@ -1,6 +1,6 @@
 # DraDoLog
 
-A mobile-first digital character sheet for **Dračí doupě 1.6**. Built to be used at the table during a session: track HP, magenergie, ammo, money and XP with one tap, with an undo for mis-taps.
+A mobile-first digital character sheet for **Dračí doupě 1.6**. Built to be used at the table during a session: track HP, magenergie, money and XP with one tap, with an undo for mis-taps.
 
 The UI is in Czech; code and comments are in English.
 
@@ -8,9 +8,9 @@ The UI is in Czech; code and comments are in English.
 
 - **Postava** – name, race, class, level, alignment, backstory, attributes (Síla, Obratnost, Odolnost, Inteligence, Charisma) with derived bonuses, XP.
 - **Schopnosti** – class abilities unlocked by level (passive, percentage-based, active with mag cost). Casters can learn and cast spells.
-- **Výbava** – inventory with weapons, ranged weapons, armour and misc items; catalog of predefined items; stackable ammo; money in měďáky; carrying capacity and encumbrance level.
-- **Boj** – big HP counter (±1 / ±5), útočné číslo, obranné číslo, iniciativa, ranged ÚČ per range band, shooting with automatic ammo consumption.
-- **Activity log** – last 100 changes (HP, mag, XP, money, ammo, items) with **undo** of the last 10 actions of the visit (snapshot-based, so a purchase or a level-up is reverted whole).
+- **Výbava** – inventory with weapons, ranged weapons, armour and misc items; catalog of predefined items; money in měďáky; carrying capacity and encumbrance level.
+- **Boj** – big HP counter (±1 / ±5), útočné číslo, útočné číslo na dálku (one number from the equipped ranged / thrown weapon), obranné číslo, iniciativa.
+- **Activity log** – last 100 changes (HP, mag, XP, money, items) with **undo** of the last 10 actions of the visit (snapshot-based, so a purchase or a level-up is reverted whole).
 - **Persistence** – auto-saved to `localStorage`, with persistent storage requested so the browser does not evict it; manual backup/restore as JSON (*Uložit zálohu* / *Načíst*).
 - **Installable** – a PWA: *Add to Home Screen* gives a full-screen app that works offline; on iOS it also exempts the sheet from Safari's 7-day storage wipe. Fonts are self-hosted (`@fontsource`), so nothing is fetched from Google.
 - **O aplikaci** – the *i* button in the top bar opens a short about + guide dialog (native `<dialog>`, `src/components/InfoDialog.tsx`); the PJ view has its own variant.
@@ -75,7 +75,7 @@ src/
 │   ├── storage.ts        # navigator.storage.persist()
 │   └── defaultCharacter.ts
 ├── rules/
-│   ├── tables.ts         # rulebook tables (bonus, nosnost, zatížení, dostřel)
+│   ├── tables.ts         # rulebook tables (bonus, nosnost, zatížení)
 │   ├── derived.ts        # every computed stat
 │   ├── abilities.ts      # ability availability, % chance, can-cast
 │   └── money.ts
@@ -91,6 +91,7 @@ src/
 - **English keys, Czech labels.** Types use ASCII keys (`bojovnik`, `sil`, …); everything shown to the user comes from the `*_LABELS` maps in `types/character.ts`.
 - **Money in měďáky.** Stored in the smallest coin to avoid rounding when splitting loot. Coins also count toward carried weight.
 - **Versioned saves.** `Character.version` is checked on load/import; older versions are migrated in `normalizeCharacter()`, newer ones are rejected. Every character carries a stable `id` (filled in on load for older saves) – it is what the PJ view matches re-imports on, and the natural key should the party ever sync live.
+- **House simplifications.** The sheet deliberately leaves out parts of the rulebook the group does not play with: weapons have no útočnost (damage is the plain difference of the rolls), ranged combat is a single *ÚČ na dálku* with no range bands and no ammo bookkeeping, and alchemy is limited only by magenergie and suroviny – recipes carry no production time.
 - **Two pages, one rules engine.** `/pj.html` is a second Vite entry that reuses `rules/`, `data/` and `types/`; nothing about the rules is duplicated there.
 
 ## Adapting the rules
@@ -106,4 +107,4 @@ To add content, extend the arrays in `src/data/` (items, abilities, spells).
 
 ## Status
 
-Personal project, work in progress. Alchemist recipe brewing is implemented in the store (`brew`) but not yet exposed in the UI.
+Personal project, work in progress.

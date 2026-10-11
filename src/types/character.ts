@@ -78,16 +78,6 @@ export const ITEM_KIND_LABELS: Record<ItemKind, string> = {
   ostatni: 'Ostatní',
 };
 
-export type Dostrel = 'maly' | 'stredni' | 'velky';
-
-export const DOSTREL_ORDER: readonly Dostrel[] = ['maly', 'stredni', 'velky'];
-
-export const DOSTREL_LABELS: Record<Dostrel, string> = {
-  maly: 'Malý',
-  stredni: 'Střední',
-  velky: 'Velký',
-};
-
 interface ItemBase {
   id: string;
   name: string;
@@ -104,8 +94,6 @@ export interface Zbran extends ItemBase {
   equipped: boolean;
   /** Síla zbraně (SZ) - goes into ÚČ. */
   sila: number;
-  /** Útočnost (út) - added to damage on a hit. */
-  utocnost: number;
   /** Obrana zbraně (OZ) - added to the defence roll when parrying. */
   obrana: number;
   trida: TridaZbrane;
@@ -120,14 +108,8 @@ export interface Zbran extends ItemBase {
 export interface Strelna extends ItemBase {
   kind: 'strelna';
   equipped: boolean;
-  /** Síla zbraně (SZ). */
+  /** Síla zbraně (SZ) - goes into ÚČ na dálku. */
   sila: number;
-  /** Útočnost (út). */
-  utocnost: number;
-  /** Range limits in sáhy, in DOSTREL_ORDER: [malý, střední, velký]. */
-  dostrel: [number, number, number];
-  /** templateId of the ammo stack this weapon consumes. */
-  municeId?: string;
   trida: TridaZbrane;
   /** Thrown weapon (as opposed to a bow / crossbow / sling). */
   vrhaci: boolean;
@@ -161,7 +143,7 @@ export type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omi
 /** An item before it gets an id (what addItem accepts). */
 export type NewItem = DistributiveOmit<Item, 'id'>;
 
-export type LogKind = 'hp' | 'xp' | 'money' | 'mag' | 'ammo' | 'note';
+export type LogKind = 'hp' | 'xp' | 'money' | 'mag' | 'note';
 
 export interface LogEntry {
   id: string;
@@ -169,13 +151,11 @@ export interface LogEntry {
   kind: LogKind;
   delta?: number;
   text: string;
-  /** For 'ammo' entries: templateId of the stack, so undo can put the shot back. */
-  ref?: string;
 }
 
 export interface Character {
   /** Bump this when the shape changes so old saves can be migrated or discarded. */
-  version: 3;
+  version: 4;
   /**
    * Stable identity of the character, generated once and kept across renames
    * and exports. The PJ view uses it to match a re-imported file to the
@@ -258,7 +238,6 @@ export interface RecipeTemplate {
   vysledekId: string;
   zaklad?: string;
   trvani?: string;
-  vyroba?: string;
   /** Needs a laboratory ("doma") - cannot be made on the road. */
   doma?: boolean;
   popis?: string;

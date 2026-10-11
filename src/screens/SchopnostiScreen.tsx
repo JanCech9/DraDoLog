@@ -201,7 +201,8 @@ export function SchopnostiScreen({ store }: { store: CharacterStore }) {
           <p className="note">
             Magenergie v truhle {character.magenergie.current} / {character.magenergie.max} · peníze na suroviny{' '}
             {formatMoney(character.money)} · úspěch {Math.max(0, sanceLucby - postihLucby)} % (v boji −10 % za každého
-            nepřítele do 2 sáhů; neúspěch spotřebuje suroviny i magenergii). Hoď k% a zapiš výsledek.
+            nepřítele do 2 sáhů; neúspěch spotřebuje suroviny i magenergii). Výrobu omezují jen magenergie a suroviny – čas
+            se nepočítá. Hoď k% a zapiš výsledek.
           </p>
           <div className="field-row">
             <label className="field">
@@ -236,7 +237,7 @@ export function SchopnostiScreen({ store }: { store: CharacterStore }) {
                   <span className="note">
                     {r.magCost} magů · suroviny {formatMoney(r.surovinyCena)}
                     {r.zaklad ? ` · základ ${r.zaklad}` : ''}
-                    {r.vyroba ? ` · výroba ${r.vyroba}${r.doma ? ' (jen doma)' : ''}` : ''}
+                    {r.doma ? ' · jen doma' : ''}
                     {r.trvani ? ` · trvání ${r.trvani}` : ''}
                   </span>
                   {r.popis && <span className="note">{r.popis}</span>}
