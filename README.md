@@ -6,14 +6,15 @@ The UI is in Czech; code and comments are in English.
 
 ## Features
 
-- **Postava** – name, race, class, level, alignment, backstory, attributes (Síla, Obratnost, Odolnost, Inteligence, Charisma) with derived bonuses, XP.
+- **Nová postava** – a step-by-step dialog in the top bar for Tvorba postavy (str. 26–31): identita (name, race, class, alignment – chosen or looked up from the 1k10 table), attributes with the race/class range and the dice to roll for it, computed starting HP and magenergie, starting money from the 1k6 roll (or a penniless start), and a shop step that spends it; the first weapon, armour and shield are equipped right away. Dice are still rolled at the table – the dialog only takes the results. Creating replaces the character in the sheet, so the last step offers a backup first.
+- **Postava** – name, level, alignment, backstory, attributes (Síla, Obratnost, Odolnost, Inteligence, Charisma) with derived bonuses, XP and level-up. Race and class are fixed at creation and shown read-only.
 - **Schopnosti** – class abilities unlocked by level (passive, percentage-based, active with mag cost). Casters can learn and cast spells.
 - **Výbava** – inventory with weapons, ranged weapons, armour and misc items; catalog of predefined items; money in měďáky; carrying capacity and encumbrance level.
 - **Boj** – big HP counter (±1 / ±5), útočné číslo, útočné číslo na dálku (one number from the equipped ranged / thrown weapon), obranné číslo, iniciativa.
 - **Activity log** – last 100 changes (HP, mag, XP, money, items) with **undo** of the last 10 actions of the visit (snapshot-based, so a purchase or a level-up is reverted whole).
 - **Persistence** – auto-saved to `localStorage`, with persistent storage requested so the browser does not evict it; manual backup/restore as JSON (*Uložit zálohu* / *Načíst*).
 - **Installable** – a PWA: *Add to Home Screen* gives a full-screen app that works offline; on iOS it also exempts the sheet from Safari's 7-day storage wipe. Fonts are self-hosted (`@fontsource`), so nothing is fetched from Google.
-- **O aplikaci** – the *i* button in the top bar opens a short about + guide dialog (native `<dialog>`, `src/components/InfoDialog.tsx`); the PJ view has its own variant.
+- **O aplikaci** – the *i* button in the top bar opens a short about + guide dialog (native `<dialog>`, `src/components/InfoDialog.tsx`); the PJ view has its own variant. Both dialogs share the `.dialog*` shell styles in `index.css`.
 - **Sharing with the PJ** – *Poslat PJ* hands the JSON to the phone's share sheet (Messenger, WhatsApp, mail…), or downloads it where file sharing isn't supported.
 
 ## Pán jeskyně view (`/pj.html`)
@@ -53,6 +54,9 @@ index.html                # player's sheet
 pj.html                   # PJ's party view
 src/
 ├── App.tsx               # layout, tab navigation, import/export
+├── components/
+│   ├── InfoDialog.tsx    # about + guide
+│   └── NewCharacterWizard.tsx  # Nová postava: the creation steps
 ├── main.tsx              # fonts, persistent storage, mount
 ├── index.css
 ├── PjApp.tsx             # PJ view: import, sorting, table + cards
@@ -69,6 +73,7 @@ src/
 │       └── format.ts
 ├── state/
 │   ├── useCharacter.ts   # the store: all mutations, log, undo, persistence
+│   ├── newCharacter.ts   # Tvorba postavy: draft → complete level-1 character (pure)
 │   ├── characterFile.ts  # JSON file export, download and Web Share
 │   ├── party.ts          # PJ's party: merge, persistence (pure functions)
 │   ├── useParty.ts       # PJ's party hook

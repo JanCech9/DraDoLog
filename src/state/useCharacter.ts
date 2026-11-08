@@ -16,7 +16,6 @@ import { characterToFile, downloadFile, shareFile } from './characterFile';
 import { bonus } from '../rules/derived';
 import {
   hpKostka,
-  hpZaklad,
   formatKostka,
   magenergieZTabulky,
   meditujici,
@@ -402,18 +401,6 @@ export function useCharacter() {
     [act],
   );
 
-  /** Životy nové postavy na 1. úrovni (str. 27): základ povolání + bonus za odolnost, nejméně 1. */
-  const pocatecniZivoty = useCallback(
-    () =>
-      act((draft) => {
-        const hp = Math.max(1, hpZaklad(draft.identity.povolani) + bonus(draft.vlastnosti.odl));
-        if (draft.hp.current === hp && draft.hp.max === hp) return false;
-        draft.hp = { current: hp, max: hp };
-        log(draft, 'note', `Počáteční životy: ${hp}`);
-      }),
-    [act],
-  );
-
   /** Důkladný odpočinek (str. 85): +2 životy, meditující povolání získají magenergii. */
   const rest = useCallback(
     () =>
@@ -478,12 +465,23 @@ export function useCharacter() {
     [character],
   );
 
-  const importJson = useCallback(async (file: File) => {
-    const parsed = normalizeCharacter(JSON.parse(await file.text()));
-    if (!parsed) throw new Error('Nepodporovaný formát souboru.');
-    // A different character: snapshots of the old one would make no sense to restore.
-    setTimeline({ current: parsed, past: [] });
+  /**
+   * Swap in a different character (a freshly created one, or one loaded from
+   * a file). Snapshots of the old one would make no sense to restore, so the
+   * undo history starts empty.
+   */
+  const replaceCharacter = useCallback((next: Character) => {
+    setTimeline({ current: next, past: [] });
   }, []);
+
+  const importJson = useCallback(
+    async (file: File) => {
+      const parsed = normalizeCharacter(JSON.parse(await file.text()));
+      if (!parsed) throw new Error('Nepodporovaný formát souboru.');
+      replaceCharacter(parsed);
+    },
+    [replaceCharacter],
+  );
 
   return {
     character,
@@ -504,13 +502,13 @@ export function useCharacter() {
     forgetSpell,
     brew,
     refillMag,
-    pocatecniZivoty,
     rest,
     levelUp,
     undoLast,
     exportJson,
     shareJson,
     importJson,
+    replaceCharacter,
   };
 }
 

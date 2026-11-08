@@ -5,6 +5,7 @@ import { SchopnostiScreen } from './screens/SchopnostiScreen';
 import { VybavaScreen } from './screens/VybavaScreen';
 import { BojScreen } from './screens/BojScreen';
 import { InfoButton } from './components/InfoDialog';
+import { NewCharacterButton } from './components/NewCharacterWizard';
 
 type Tab = 'postava' | 'schopnosti' | 'vybava' | 'boj';
 
@@ -34,6 +35,7 @@ export default function App() {
       <header className="topbar">
         <h1>{store.character.identity.name || 'Deník dobrodruha'}</h1>
         <div className="topbar__actions">
+          <NewCharacterButton store={store} />
           <button type="button" className="chip chip--quiet" onClick={() => void store.shareJson()}>
             Poslat PJ
           </button>
