@@ -158,6 +158,43 @@ assert(proctoNeovlada('zlodej', cat.find(x => x.templateId === 'stit')!) !== nul
   assert(Object.keys(newRound(e).hody).length === 0 && newRound(e).npcs.length === 2, 'new round clears rolls, keeps monsters');
 }
 
+// Tvorba postavy (str. 26–31): the wizard's builder.
+{
+  const { buildCharacter, mimoRozsah, pocatecniPenize } = await import('../src/state/newCharacter');
+  const { hodNaRozsah } = await import('../src/rules/dice');
+  assert(hodNaRozsah(13, 18) === '1k6+12' && hodNaRozsah(6, 16) === '2k6+4' && hodNaRozsah(2, 17) === '3k6−1', 'hod na rozsah: k6 by span');
+  assert(hodNaRozsah(5, 14) === '1k10+4' && hodNaRozsah(10, 10) === '', 'hod na rozsah: k10 and degenerate');
+  assert(pocatecniPenize(1) === 6000 && pocatecniPenize(6) === 11000, 'počáteční peníze (1k6+5)×10 zl');
+
+  const velke = catalogFor('B');
+  const luk = velke.find((t) => t.templateId === 'dlouhy-luk')!;
+  const sipy = velke.find((t) => t.templateId === 'sipy')!;
+  const zbroj = velke.find((t) => t.templateId === 'kozena-zbroj')!;
+  const draft = {
+    name: '  Sindor ',
+    rasa: 'elf' as const,
+    povolani: 'kouzelnik' as const,
+    presvedceni: 'zmatene-dobro' as const,
+    vlastnosti: { sil: 8, obr: 12, odl: 7, int: 16, chs: 14 },
+    hodPenize: 3,
+    purchases: [{ template: luk, qty: 1 }, { template: sipy, qty: 20 }, { template: sipy, qty: 10 }, { template: zbroj, qty: 1 }],
+  };
+  const c = buildCharacter(draft);
+  assert(c.identity.name === 'Sindor' && c.identity.uroven === 1 && c.identity.presvedceni === 'zmatene-dobro', 'identity from the draft, trimmed');
+  assert(c.hp.max === 4 && c.hp.current === 4, `kouzelník: 6 + Odl 7 (−2) = 4 životy (got ${c.hp.max})`);
+  assert(c.magenergie.max === 8 && c.magenergie.current === 8, `kouzelník Int 16 → 8 magů (got ${c.magenergie.max})`);
+  const spent = luk.price + 30 * sipy.price + zbroj.price;
+  assert(c.money === 8000 - spent, `money: (3+5)×10 zl minus purchases (got ${c.money})`);
+  assert(c.inventory.length === 3 && c.inventory.find((i) => i.templateId === 'sipy')!.qty === 30, 'stackable purchases merge');
+  assert(c.inventory.every((i) => i.kind === 'ostatni' || i.equipped), 'first weapon and armour go on at once');
+  assert(c.log[0].text.startsWith('Koupeno') && c.log[c.log.length - 1].text.startsWith('Nová postava'), 'log reads newest first');
+  assert(c.log.some((e) => e.kind === 'money' && e.delta === 8000), 'starting money is logged');
+  assert(mimoRozsah(draft).join() === 'chs', `elf kouzelník: Chs 14 is below 15–20, the rest fits (got ${mimoRozsah(draft)})`);
+
+  const chudak = buildCharacter({ ...draft, hodPenize: undefined, purchases: [] });
+  assert(chudak.money === 0 && chudak.inventory.length === 0, 'penniless start');
+}
+
 // Data integrity
 const ids = new Set<string>();
 for (const tpl of cat) { if (ids.has(tpl.templateId)) throw new Error('dup templateId ' + tpl.templateId); ids.add(tpl.templateId); }

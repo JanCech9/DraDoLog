@@ -40,15 +40,15 @@ function InfoDialog({ variant, open, onClose }: { variant: InfoVariant; open: bo
   }
 
   return (
-    <dialog ref={ref} className="info" aria-labelledby="info-title" onClose={onClose} onClick={onClick}>
-      <div className="info__panel">
-        <header className="info__header">
+    <dialog ref={ref} className="dialog info" aria-labelledby="info-title" onClose={onClose} onClick={onClick}>
+      <div className="dialog__panel">
+        <header className="dialog__header">
           <h2 id="info-title">{variant === 'pj' ? 'Pohled Pána jeskyně' : 'DraDoLog'}</h2>
           <button type="button" className="chip" onClick={onClose} autoFocus>
             Zavřít
           </button>
         </header>
-        <div className="info__body">{variant === 'pj' ? <PjGuide /> : <PlayerGuide />}</div>
+        <div className="dialog__body">{variant === 'pj' ? <PjGuide /> : <PlayerGuide />}</div>
       </div>
     </dialog>
   );
@@ -74,10 +74,11 @@ function PlayerGuide() {
       <Section title="Rychlý start">
         <ol>
           <li>
-            <strong>Postava</strong> – vyplň jméno, rasu, povolání, úroveň a hozené vlastnosti.
+            <strong>Nová postava</strong> (nahoře) – krok za krokem: jméno, rasa, povolání, přesvědčení, hody na
+            vlastnosti, životy, počáteční peníze a nákup výbavy. Rasa a povolání se pak už nemění.
           </li>
           <li>
-            <strong>Výbava</strong> – přidej zbraně, zbroj a věci z katalogu (nebo vlastní) a nasaď je.
+            <strong>Výbava</strong> – dokup zbraně, zbroj a věci z katalogu (nebo vlastní) a nasaď je.
           </li>
           <li>
             <strong>Boj</strong> – během hry už jen ťukáš: životy a magenergie.
@@ -92,7 +93,7 @@ function PlayerGuide() {
       <Section title="Záložky">
         <dl>
           <dt>Postava</dt>
-          <dd>Základní údaje, vlastnosti s bonusy, zkušenosti a příběh postavy.</dd>
+          <dd>Základní údaje, vlastnosti s bonusy, zkušenosti, postup na další úroveň a příběh postavy.</dd>
           <dt>Schopnosti</dt>
           <dd>Schopnosti povolání podle úrovně, šance v %, kouzla (učení a sesílání) a lučba pro alchymisty.</dd>
           <dt>Výbava</dt>
@@ -114,6 +115,9 @@ function PlayerGuide() {
           <li>Vše se ukládá samo, ale jen v tomto prohlížeči na tomto zařízení.</li>
           <li>
             <strong>Uložit zálohu</strong> stáhne postavu jako soubor JSON, <strong>Načíst</strong> ji z něj obnoví.
+          </li>
+          <li>
+            Deník drží jednu postavu. <strong>Nová postava</strong> tu současnou nahradí – před tím si ji ulož.
           </li>
           <li>Před výměnou telefonu nebo mazáním dat prohlížeče si zálohu udělej – jinak o postavu přijdeš.</li>
         </ul>
