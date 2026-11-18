@@ -99,14 +99,14 @@ function PlayerGuide() {
           <dt>Výbava</dt>
           <dd>Inventář, peníze, obchod a nosnost. Peníze se počítají v měďácích a také něco váží.</dd>
           <dt>Boj</dt>
-          <dd>Velké počítadlo životů, ÚČ, ÚČ na dálku, OČ, iniciativa, magenergie a odpočinek.</dd>
+          <dd>Velké počítadlo životů, ÚČ, ÚČ na dálku, OČ, iniciativa, magenergie, odpočinek a jídlo (Najíst se ubere denní příděl).</dd>
         </dl>
       </Section>
 
       <Section title="Ťukl jsem vedle">
         <p>
-          V záložce <strong>Boj</strong> dole jsou <em>Poslední změny</em>. Tlačítko{' '}
-          <strong>Vrátit poslední změnu</strong> vrátí poslední zápis – životy, magenergii, zkušenosti nebo peníze – a dá se mačkat i opakovaně. Deník si pamatuje posledních 100 změn.
+          Prostě to oprav opačným tlačítkem (−1 / +1). V záložce <strong>Boj</strong> dole jsou <em>Poslední změny</em>, kde
+          vidíš, co se naposledy stalo – deník si pamatuje posledních 100 zápisů.
         </p>
       </Section>
 

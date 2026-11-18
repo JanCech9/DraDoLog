@@ -16,6 +16,7 @@ import { KOUZLA } from '../data/spells';
 import { RECEPTY } from '../data/recipes';
 import { RASA_RYSY } from '../data/races';
 import { signed } from './format';
+import { NumberInput } from '../components/NumberInput';
 
 function KouzloRadek({
   k,
@@ -60,14 +61,12 @@ function KouzloRadek({
       {known ? (
         <>
           {k.magCostPopis && (
-            <input
+            <NumberInput
               className="item__qty"
-              type="number"
-              inputMode="numeric"
               min={k.magCost}
               value={magy}
               title="Magenergie vložená do kouzla"
-              onChange={(e) => setMagy(Number(e.target.value) || k.magCost)}
+              onChange={setMagy}
             />
           )}
           <button
@@ -207,14 +206,7 @@ export function SchopnostiScreen({ store }: { store: CharacterStore }) {
           <div className="field-row">
             <label className="field">
               <span>Postih k úspěchu (%)</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                step={10}
-                value={postihLucby}
-                onChange={(e) => setPostihLucby(Math.max(0, Number(e.target.value) || 0))}
-              />
+              <NumberInput min={0} step={10} value={postihLucby} onChange={setPostihLucby} />
             </label>
             <label className="field">
               <span>Hod k%</span>

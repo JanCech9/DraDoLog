@@ -4,7 +4,7 @@ import type { Presvedceni } from '../types/character';
 import { derive } from '../rules/derived';
 import { RODOVE_ZBRANE, WEIGHT_UNIT } from '../rules/tables';
 import { formatKostka, hpKostka, urovenInfo } from '../rules/abilities';
-import { toMedaky } from '../rules/money';
+import { formatMoney, toMedaky } from '../rules/money';
 import { RASA_RYSY } from '../data/races';
 import { CATALOG } from '../data/catalog';
 import {
@@ -15,6 +15,7 @@ import {
   PRESVEDCENI_LABELS,
 } from '../types/character';
 import { signed } from './format';
+import { NumberInput } from '../components/NumberInput';
 
 export function PostavaScreen({ store }: { store: CharacterStore }) {
   const { character, update, adjustXp, levelUp } = store;
@@ -31,10 +32,19 @@ export function PostavaScreen({ store }: { store: CharacterStore }) {
   const hodZivoty = hodZivotyZadany ?? kostka.n + kostka.plus;
 
   function postoupit(zaplatit: boolean) {
+    if (zaplatit && character.money < cenaVycviku) {
+      alert(`Na výcvik nemáš dost peněz – stojí ${lvl.cena} zl, máš ${formatMoney(character.money)}.`);
+      return;
+    }
+    const varovani = lvl.muze
+      ? ''
+      : `Pozor: na ${uroven + 1}. úroveň potřebuješ ${lvl.dalsi} zt, máš jen ${character.xp} (chybí ${lvl.chybi}).\n\n`;
+    const presto = lvl.muze ? '' : 'Přesto ';
     const otazka = zaplatit
-      ? `Zaplatit ${lvl.cena} zl za výcvik a postoupit na ${uroven + 1}. úroveň (hod na životy ${hodZivoty})?`
-      : `Postoupit na ${uroven + 1}. úroveň bez placení (hod na životy ${hodZivoty})?`;
-    if (!confirm(otazka)) return;
+      ? `${presto}zaplatit ${lvl.cena} zl za výcvik a postoupit na ${uroven + 1}. úroveň (hod na životy ${hodZivoty})?`
+      : `${presto}postoupit na ${uroven + 1}. úroveň bez placení (hod na životy ${hodZivoty})?`;
+    // Capitalise the first letter when there is no "Přesto" in front.
+    if (!confirm(varovani + otazka.charAt(0).toUpperCase() + otazka.slice(1))) return;
     levelUp(zaplatit, hodZivoty);
     setHodZivoty(undefined); // next level, new roll
   }
@@ -71,13 +81,10 @@ export function PostavaScreen({ store }: { store: CharacterStore }) {
       <div className="field-row">
         <label className="field">
           <span>Úroveň</span>
-          <input
-            type="number"
-            inputMode="numeric"
+          <NumberInput
+            min={1}
             value={uroven}
-            onChange={(e) =>
-              update((draft) => void (draft.identity.uroven = Math.max(1, Number(e.target.value) || 1)))
-            }
+            onChange={(n) => update((draft) => void (draft.identity.uroven = n))}
           />
         </label>
         <label className="field">
@@ -108,14 +115,12 @@ export function PostavaScreen({ store }: { store: CharacterStore }) {
         {VLASTNOSTI_ORDER.map((key) => (
           <li key={key} className="stat">
             <span className="stat__name">{VLASTNOST_LABELS[key]}</span>
-            <input
+            <NumberInput
               className="stat__input"
-              type="number"
-              inputMode="numeric"
               min={1}
               max={21}
               value={character.vlastnosti[key]}
-              onChange={(e) => update((draft) => void (draft.vlastnosti[key] = Number(e.target.value) || 0))}
+              onChange={(n) => update((draft) => void (draft.vlastnosti[key] = n))}
             />
             <span className="stat__bonus">{signed(d.bonus[key])}</span>
           </li>
@@ -145,23 +150,17 @@ export function PostavaScreen({ store }: { store: CharacterStore }) {
           <div className="field-row">
             <label className="field">
               <span>Hod na životy ({formatKostka(kostka)})</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={kostka.n + kostka.plus}
+              <NumberInput
+                min={0}
+                fallback={kostka.n + kostka.plus}
                 value={hodZivoty}
-                onChange={(e) => setHodZivoty(Math.max(0, Number(e.target.value) || 0))}
+                onChange={setHodZivoty}
               />
             </label>
-            <button
-              type="button"
-              className="chip chip--on"
-              disabled={!lvl.muze || character.money < cenaVycviku}
-              onClick={() => postoupit(true)}
-            >
+            <button type="button" className={lvl.muze ? 'chip chip--on' : 'chip'} onClick={() => postoupit(true)}>
               Zaplatit výcvik a postoupit
             </button>
-            <button type="button" className="chip" disabled={!lvl.muze} onClick={() => postoupit(false)}>
+            <button type="button" className="chip" onClick={() => postoupit(false)}>
               Postoupit bez placení
             </button>
           </div>

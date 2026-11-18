@@ -1,17 +1,20 @@
 import type { CharacterStore } from '../state/useCharacter';
 import { derive } from '../rules/derived';
 import { maMagenergii, magenergieZTabulky, meditujici } from '../rules/abilities';
+import { dnyJidla, formatDny } from '../rules/food';
 import { signed } from './format';
+import { NumberInput } from '../components/NumberInput';
 
 const timeFormat = new Intl.DateTimeFormat('cs-CZ', { hour: '2-digit', minute: '2-digit' });
 
 export function BojScreen({ store }: { store: CharacterStore }) {
-  const { character, update, adjustHp, adjustMag, undoLast, canUndo, rest, refillMag } = store;
+  const { character, update, adjustHp, adjustMag, rest, eat, refillMag } = store;
   const d = derive(character);
   const { povolani } = character.identity;
   const isCaster = maMagenergii(character);
   const postih = d.postihZraneni + d.postihNalozeni;
   const magTabulka = magenergieZTabulky(character);
+  const jidlo = dnyJidla(character.inventory);
 
   return (
     <div className="screen">
@@ -19,11 +22,10 @@ export function BojScreen({ store }: { store: CharacterStore }) {
         <output className="vitals__value">{character.hp.current}</output>
         <label className="vitals__max">
           <span>z</span>
-          <input
-            type="number"
-            inputMode="numeric"
+          <NumberInput
+            min={0}
             value={character.hp.max}
-            onChange={(e) => update((draft) => void (draft.hp.max = Number(e.target.value) || 0))}
+            onChange={(n) => update((draft) => void (draft.hp.max = n))}
           />
           <span>životů</span>
         </label>
@@ -111,13 +113,10 @@ export function BojScreen({ store }: { store: CharacterStore }) {
             </button>
             <label className="field">
               <span>Maximum</span>
-              <input
-                type="number"
-                inputMode="numeric"
+              <NumberInput
+                min={0}
                 value={character.magenergie.max}
-                onChange={(e) =>
-                  update((draft) => void (draft.magenergie.max = Number(e.target.value) || 0))
-                }
+                onChange={(n) => update((draft) => void (draft.magenergie.max = n))}
               />
             </label>
           </div>
@@ -132,43 +131,40 @@ export function BojScreen({ store }: { store: CharacterStore }) {
         </>
       )}
 
-      <h2 className="heading">Odpočinek</h2>
+      <h2 className="heading">Odpočinek a jídlo</h2>
       <p className="note">
         Důkladný odpočinek: +2 životy{meditujici(povolani) && isCaster ? ', plná magenergie' : ''}. Spánek trvá 8 − ½ bonusu za
         odolnost hodin.
       </p>
-      <button type="button" className="chip" onClick={rest}>
-        Odpočinout si
-      </button>
+      <p className={jidlo ? 'note' : 'note delta--down'}>
+        {jidlo ? `Jídlo v batohu vystačí na ${formatDny(jidlo)}.` : 'Nemáš u sebe žádné jídlo.'}
+      </p>
+      <div className="field-row">
+        <button type="button" className="chip" onClick={rest}>
+          Odpočinout si
+        </button>
+        <button type="button" className="chip" disabled={!jidlo} onClick={eat}>
+          Najíst se
+        </button>
+      </div>
 
       <h2 className="heading">Poslední změny</h2>
       {character.log.length === 0 ? (
         <p className="note">Nic se zatím nestalo.</p>
       ) : (
-        <>
-          <button
-            type="button"
-            className="chip"
-            disabled={!canUndo}
-            title={canUndo ? undefined : 'Vrátit lze jen změny provedené od otevření deníku.'}
-            onClick={undoLast}
-          >
-            Vrátit poslední změnu
-          </button>
-          <ol className="log">
-            {character.log.slice(0, 12).map((entry) => (
-              <li key={entry.id}>
-                <span className="note">{timeFormat.format(entry.ts)}</span>
-                <span>{entry.text}</span>
-                {entry.delta !== undefined && (
-                  <span className={entry.delta < 0 ? 'delta delta--down' : 'delta delta--up'}>
-                    {entry.delta > 0 ? `+${entry.delta}` : entry.delta}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ol>
-        </>
+        <ol className="log">
+          {character.log.slice(0, 12).map((entry) => (
+            <li key={entry.id}>
+              <span className="note">{timeFormat.format(entry.ts)}</span>
+              <span>{entry.text}</span>
+              {entry.delta !== undefined && (
+                <span className={entry.delta < 0 ? 'delta delta--down' : 'delta delta--up'}>
+                  {entry.delta > 0 ? `+${entry.delta}` : entry.delta}
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
       )}
     </div>
   );

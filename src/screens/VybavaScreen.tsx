@@ -13,34 +13,20 @@ import {
 } from '../types/character';
 import { catalogFor, type ItemTemplate } from '../data/catalog';
 import { signed } from './format';
+import { NumberInput } from '../components/NumberInput';
 
-/**
- * Number input for stats that can be negative (OZ, iniciativa).
- * inputMode="numeric" would give iOS a keypad without a minus key, and a
- * number input reports a lone "-" as "" - so the text being typed is kept
- * here and pushed up only once it parses; an emptied field becomes 0 on blur.
- * The content is selected on focus so that typing "-2" replaces the 0
- * instead of producing the invalid "0-2".
- */
-function SignedNumberInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
-  const [typing, setTyping] = useState<string | null>(null);
-  return (
-    <input
-      type="number"
-      value={typing ?? value}
-      onFocus={(e) => e.currentTarget.select()}
-      onChange={(e) => {
-        const raw = e.target.value;
-        setTyping(raw);
-        if (raw !== '') onChange(Number(raw) || 0);
-      }}
-      onBlur={() => {
-        if (typing === '') onChange(0);
-        setTyping(null);
-      }}
-    />
-  );
-}
+const ST = toMedaky({ st: 1 });
+const ZL = toMedaky({ zl: 1 });
+const UTRATIT = [
+  { label: '−10 zl', delta: -10 * ZL },
+  { label: '−1 zl', delta: -ZL },
+  { label: '−1 st', delta: -ST },
+];
+const PRIJMOUT = [
+  { label: '+1 st', delta: ST },
+  { label: '+1 zl', delta: ZL },
+  { label: '+10 zl', delta: 10 * ZL },
+];
 
 const emptyForm = {
   name: '',
@@ -142,16 +128,12 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
   ) => (
     <label className="field" key={key}>
       <span>{label}</span>
-      {canBeNegative ? (
-        <SignedNumberInput value={form[key]} onChange={(n) => setForm({ ...form, [key]: n })} />
-      ) : (
-        <input
-          type="number"
-          inputMode="numeric"
-          value={form[key]}
-          onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) || 0 })}
-        />
-      )}
+      <NumberInput
+        allowNegative={canBeNegative}
+        min={canBeNegative ? undefined : 0}
+        value={form[key]}
+        onChange={(n) => setForm({ ...form, [key]: n })}
+      />
     </label>
   );
 
@@ -185,19 +167,21 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
 
       <h2 className="heading">Peníze</h2>
       <div className="counter">
-        <button type="button" onClick={() => adjustMoney(-toMedaky({ st: 1 }))}>
-          −1 st
-        </button>
         <strong className="counter__value counter__value--money">{formatMoney(character.money)}</strong>
-        <button type="button" onClick={() => adjustMoney(toMedaky({ st: 1 }))}>
-          +1 st
-        </button>
-        <button type="button" onClick={() => adjustMoney(toMedaky({ zl: 1 }))}>
-          +1 zl
-        </button>
-        <button type="button" onClick={() => adjustMoney(toMedaky({ zl: 10 }))}>
-          +10 zl
-        </button>
+      </div>
+      <div className="counter">
+        {UTRATIT.map(({ label, delta }) => (
+          <button key={label} type="button" disabled={character.money + delta < 0} onClick={() => adjustMoney(delta)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="counter">
+        {PRIJMOUT.map(({ label, delta }) => (
+          <button key={label} type="button" onClick={() => adjustMoney(delta)}>
+            {label}
+          </button>
+        ))}
       </div>
 
       <h2 className="heading">Batoh</h2>
@@ -215,12 +199,11 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
                 </span>
                 {duvod && <span className="note delta--down">{duvod}</span>}
               </div>
-              <input
+              <NumberInput
                 className="item__qty"
-                type="number"
-                inputMode="numeric"
+                min={0}
                 value={item.qty}
-                onChange={(e) => setQty(item.id, Number(e.target.value) || 0)}
+                onChange={(n) => setQty(item.id, n)}
               />
               {item.kind !== 'ostatni' && (
                 <button
@@ -263,21 +246,11 @@ export function VybavaScreen({ store }: { store: CharacterStore }) {
         </label>
         <label className="field">
           <span>Váha za kus ({WEIGHT_UNIT})</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={form.weight}
-            onChange={(e) => setForm({ ...form, weight: Number(e.target.value) || 0 })}
-          />
+          <NumberInput min={0} value={form.weight} onChange={(n) => setForm({ ...form, weight: n })} />
         </label>
         <label className="field">
           <span>Počet</span>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={form.qty}
-            onChange={(e) => setForm({ ...form, qty: Number(e.target.value) || 0 })}
-          />
+          <NumberInput min={1} value={form.qty} onChange={(n) => setForm({ ...form, qty: n })} />
         </label>
       </div>
 
