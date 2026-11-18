@@ -7,6 +7,8 @@ import { KOUZLA } from '../src/data/spells';
 import { RECEPTY } from '../src/data/recipes';
 import { createCharacter } from '../src/state/defaultCharacter';
 import { proctoNeovlada } from '../src/rules/restrictions';
+import { dnyJidla, formatDny, snistDen } from '../src/rules/food';
+import type { Item } from '../src/types/character';
 
 const assert = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAIL: ' + msg); console.log('ok  ', msg); };
 
@@ -200,4 +202,19 @@ const ids = new Set<string>();
 for (const tpl of cat) { if (ids.has(tpl.templateId)) throw new Error('dup templateId ' + tpl.templateId); ids.add(tpl.templateId); }
 for (const r of RECEPTY) if (!ids.has(r.vysledekId)) throw new Error('recipe result missing: ' + r.vysledekId);
 assert(RECEPTY.every((r) => !('vyroba' in r)), 'recepty nemají dobu výroby – lučbu omezují jen magenergie a suroviny');
+// Jídlo: Najíst se ubere den, týdenní balík se rozdělí na 7 denních přídělů se stejnou váhou.
+{
+  const tyden = fromTemplate(cat.find(t => t.templateId === 'jidlo-tyden')!, 2);
+  let inv: Item[] | null = [tyden];
+  assert(dnyJidla(inv) === 14, '2 týdny jídla = 14 dní');
+  inv = snistDen(inv)!;
+  assert(dnyJidla(inv) === 13, 'po jídle 13 dní');
+  assert(inv.find(i => i.templateId === 'jidlo-tyden')!.qty === 1 && inv.find(i => i.templateId === 'jidlo-den')!.qty === 6, 'otevřený týden → 6 denních přídělů');
+  assert(inv.reduce((w, i) => w + i.weight * i.qty, 0) === 175 + 6 * 25, 'váha odpovídá zbytku jídla');
+  for (let i = 0; i < 13; i++) inv = snistDen(inv)!;
+  assert(dnyJidla(inv) === 0 && inv.length === 0, 'snědeno vše, prázdné balíky zmizí');
+  assert(snistDen(inv) === null, 'bez jídla se nenajíš');
+  assert(formatDny(1) === '1 den' && formatDny(3) === '3 dny' && formatDny(7) === '7 dní', 'skloňování dnů');
+}
+
 console.log(`ok   ${cat.length} catalog items, ${KOUZLA.length} spells, ${RECEPTY.length} recipes, ${SCHOPNOSTI.length} abilities`);

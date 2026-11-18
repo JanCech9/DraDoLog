@@ -170,6 +170,9 @@ const VYSTROJ: readonly ItemTemplate[] = [
   { templateId: 'lahev-vina', kind: 'ostatni', name: 'Láhev vína / medoviny', weight: 15, price: 0, stackable: true },
   { templateId: 'jidlo-tyden', kind: 'ostatni', name: 'Jídlo na týden (trvanlivé)', weight: 175, price: 0, stackable: true },
   { templateId: 'jidlo-tyden-dehydrovane', kind: 'ostatni', name: 'Jídlo na týden (dehydrované)', weight: 35, price: 0, stackable: true },
+  // An opened week pack becomes 7 daily rations (Najíst se on the Boj tab).
+  { templateId: 'jidlo-den', kind: 'ostatni', name: 'Jídlo na den (trvanlivé)', weight: 25, price: 0, stackable: true, shop: false },
+  { templateId: 'jidlo-den-dehydrovane', kind: 'ostatni', name: 'Jídlo na den (dehydrované)', weight: 5, price: 0, stackable: true, shop: false },
   { templateId: 'pochoden', kind: 'ostatni', name: 'Pochodeň (6 sáhů, 3 směny)', weight: 10, price: md(1), stackable: true },
   { templateId: 'lucerna', kind: 'ostatni', name: 'Lucerna (8 sáhů)', weight: 30, price: 0 },
   { templateId: 'kresadlo', kind: 'ostatni', name: 'Křesadlo', weight: 2, price: 0 },

@@ -24,20 +24,12 @@ import {
 } from '../rules/abilities';
 import { hodinySpanku } from '../rules/tables';
 import { toMedaky } from '../rules/money';
+import { dnyJidla, formatDny, snistDen } from '../rules/food';
 
 const STORAGE_KEY = 'drd-sheet:character';
 type StoredCharacter = Omit<Character, 'version'> & { version: number };
 
-/** How many actions can be undone. Kept in memory only - a reload starts fresh. */
-const UNDO_DEPTH = 10;
-
-interface Timeline {
-  current: Character;
-  /** Snapshots taken right before each undoable action, newest first. */
-  past: Character[];
-}
-
-/** Mutates a draft; returning false means "nothing happened" (no state change, nothing to undo). */
+/** Mutates a draft; returning false means "nothing happened" (no state change, nothing logged). */
 type Recipe = (draft: Character) => void | false;
 
 /** Run a recipe on a copy of the character; null when the recipe declined to change anything. */
@@ -170,11 +162,7 @@ function load(): Character | null {
 }
 
 export function useCharacter() {
-  const [timeline, setTimeline] = useState<Timeline>(() => ({
-    current: load() ?? createCharacter(),
-    past: [],
-  }));
-  const character = timeline.current;
+  const [character, setCharacter] = useState<Character>(() => load() ?? createCharacter());
 
   useEffect(() => {
     try {
@@ -185,89 +173,72 @@ export function useCharacter() {
   }, [character]);
 
   /**
-   * Edit a field (name, attributes, max HP, item quantity…). Not undoable by
-   * itself - but the edit is applied to every remembered snapshot as well, so
-   * undoing an action never throws away an edit made after it.
+   * Change the character. Actions (HP, money, spells…) log what they did; a
+   * recipe returns false when nothing happened (not enough money, no
+   * magenergie…) so that nothing changes and nothing is logged.
    */
-  const update = useCallback((recipe: (draft: Character) => void) => {
-    setTimeline((t) => ({
-      current: apply(t.current, recipe) ?? t.current,
-      past: t.past.map((c) => apply(c, recipe) ?? c),
-    }));
-  }, []);
-
-  /**
-   * Perform an undoable action: the state before it is remembered and every
-   * action logs what it did, so "undo" always reverts the top log entry.
-   * A recipe returns false when nothing happened (not enough money, no magenergie…)
-   * so that there is nothing to undo and nothing in the log.
-   */
-  const act = useCallback((recipe: Recipe) => {
-    setTimeline((t) => {
-      const next = apply(t.current, recipe);
-      if (!next) return t;
-      return { current: next, past: [t.current, ...t.past].slice(0, UNDO_DEPTH) };
-    });
+  const update = useCallback((recipe: Recipe) => {
+    setCharacter((c) => apply(c, recipe) ?? c);
   }, []);
 
   const adjustHp = useCallback(
     (delta: number) =>
-      act((draft) => {
-        // Only the part of the delta that actually applied is logged (and undone).
+      update((draft) => {
+        // Only the part of the delta that actually applied is logged.
         const applied = Math.min(draft.hp.max, draft.hp.current + delta) - draft.hp.current;
         if (!applied) return false;
         draft.hp.current += applied;
         log(draft, 'hp', applied < 0 ? 'Zranění' : 'Léčení', applied);
       }),
-    [act],
+    [update],
   );
 
   const adjustMag = useCallback(
     (delta: number) =>
-      act((draft) => {
+      update((draft) => {
         const m = draft.magenergie;
         const applied = Math.max(0, Math.min(m.max, m.current + delta)) - m.current;
         if (!applied) return false;
         m.current += applied;
         log(draft, 'mag', 'Magenergie', applied);
       }),
-    [act],
+    [update],
   );
 
   const adjustXp = useCallback(
     (delta: number) =>
-      act((draft) => {
+      update((draft) => {
         const applied = Math.max(0, draft.xp + delta) - draft.xp;
         if (!applied) return false;
         draft.xp += applied;
         log(draft, 'xp', 'Zkušenosti', applied);
       }),
-    [act],
+    [update],
   );
 
+  /** Spending more than you have is refused rather than emptying the purse. */
   const adjustMoney = useCallback(
     (delta: number) =>
-      act((draft) => {
-        const applied = Math.max(0, draft.money + delta) - draft.money;
-        if (!applied) return false;
-        draft.money += applied;
-        log(draft, 'money', 'Peníze', applied);
+      update((draft) => {
+        if (!delta || draft.money + delta < 0) return false;
+        draft.money += delta;
+        log(draft, 'money', delta < 0 ? 'Utraceno' : 'Peníze', delta);
       }),
-    [act],
+    [update],
   );
 
   const addItem = useCallback(
     (item: NewItem) =>
-      act((draft) => {
+      update((draft) => {
         draft.inventory.push({ ...item, id: newId() } as Item);
         log(draft, 'note', `Přidáno: ${item.qty}× ${item.name}`);
       }),
-    [act],
+    [update],
   );
 
   const buyItem = useCallback(
     (t: ItemTemplate, qty = 1, pay = true) => {
-      act((draft) => {
+      update((draft) => {
         const cost = t.price * qty;
         if (pay && cost > 0) {
           if (draft.money < cost) return false;
@@ -281,18 +252,18 @@ export function useCharacter() {
         else draft.inventory.push(fromTemplate(t, qty));
       });
     },
-    [act],
+    [update],
   );
 
   const removeItem = useCallback(
     (id: string) =>
-      act((draft) => {
+      update((draft) => {
         const item = draft.inventory.find((i) => i.id === id);
         if (!item) return false;
         draft.inventory = draft.inventory.filter((i) => i.id !== id);
         log(draft, 'note', `Zahozeno: ${item.qty}× ${item.name}`);
       }),
-    [act],
+    [update],
   );
 
   const setQty = useCallback(
@@ -322,13 +293,13 @@ export function useCharacter() {
   /** Cast a spell; `magy` overrides the cost for spells with variable magenergie. */
   const castSpell = useCallback(
     (k: KouzloTemplate, magy?: number) =>
-      act((draft) => {
+      update((draft) => {
         const cost = Math.max(k.magCost, magy ?? k.magCost);
         if (draft.magenergie.current < cost) return false;
         draft.magenergie.current -= cost;
         log(draft, 'mag', `Seslal: ${k.name}`, -cost);
       }),
-    [act],
+    [update],
   );
 
   const learnSpell = useCallback(
@@ -354,7 +325,7 @@ export function useCharacter() {
    */
   const brew = useCallback(
     (r: RecipeTemplate, hod: number, postih = 0) =>
-      act((draft) => {
+      update((draft) => {
         if (hod < 1 || hod > 100) return false;
         if (draft.magenergie.current < r.magCost || draft.money < r.surovinyCena) return false;
         const velikost = RASA_RYSY[draft.identity.rasa].velikost;
@@ -385,26 +356,26 @@ export function useCharacter() {
           );
         }
       }),
-    [act],
+    [update],
   );
 
   /** Refill magenergie to the class table's value (kouzelník, hraničář) or set the max (alchymista). */
   const refillMag = useCallback(
     () =>
-      act((draft) => {
+      update((draft) => {
         const max = magenergieZTabulky(draft);
         if (draft.magenergie.max === max && draft.magenergie.current === max) return false;
         draft.magenergie.max = max;
         draft.magenergie.current = max;
         log(draft, 'note', `Magenergie nastavena podle tabulky: ${max} magů`);
       }),
-    [act],
+    [update],
   );
 
   /** Důkladný odpočinek (str. 85): +2 životy, meditující povolání získají magenergii. */
   const rest = useCallback(
     () =>
-      act((draft) => {
+      update((draft) => {
         const hodiny = hodinySpanku(bonus(draft.vlastnosti.odl));
         const gain = Math.min(2, draft.hp.max - draft.hp.current);
         if (gain > 0) {
@@ -419,7 +390,19 @@ export function useCharacter() {
           if (delta) log(draft, 'mag', draft.identity.povolani === 'kouzelnik' ? 'Zaostření vůle' : 'Meditace', delta);
         }
       }),
-    [act],
+    [update],
+  );
+
+  /** Eat one day's ration from the backpack, opening a week pack when needed. */
+  const eat = useCallback(
+    () =>
+      update((draft) => {
+        const inventory = snistDen(draft.inventory);
+        if (!inventory) return false;
+        draft.inventory = inventory;
+        log(draft, 'note', `Najedl se (jídlo ještě na ${formatDny(dnyJidla(inventory))})`);
+      }),
+    [update],
   );
 
   /**
@@ -429,7 +412,7 @@ export function useCharacter() {
    */
   const levelUp = useCallback(
     (payTraining: boolean, hod: number) =>
-      act((draft) => {
+      update((draft) => {
         const info = urovenInfo(draft);
         const cost = toMedaky({ zl: info.cena ?? 0 });
         if (payTraining && cost > 0) {
@@ -444,16 +427,8 @@ export function useCharacter() {
         draft.hp.current += gain;
         log(draft, 'hp', `Postup na ${draft.identity.uroven}. úroveň (${formatKostka(k)} = ${hod})`, gain);
       }),
-    [act],
+    [update],
   );
-
-  /** Restore the snapshot taken before the last action - log entry included. */
-  const undoLast = useCallback(() => {
-    setTimeline((t) => {
-      const [previous, ...past] = t.past;
-      return previous ? { current: previous, past } : t;
-    });
-  }, []);
 
   const exportJson = useCallback(() => {
     downloadFile(characterToFile(character));
@@ -465,13 +440,9 @@ export function useCharacter() {
     [character],
   );
 
-  /**
-   * Swap in a different character (a freshly created one, or one loaded from
-   * a file). Snapshots of the old one would make no sense to restore, so the
-   * undo history starts empty.
-   */
+  /** Swap in a different character (a freshly created one, or one loaded from a file). */
   const replaceCharacter = useCallback((next: Character) => {
-    setTimeline({ current: next, past: [] });
+    setCharacter(next);
   }, []);
 
   const importJson = useCallback(
@@ -485,8 +456,6 @@ export function useCharacter() {
 
   return {
     character,
-    /** True while there is an action of this visit to undo. */
-    canUndo: timeline.past.length > 0,
     update,
     adjustHp,
     adjustMag,
@@ -504,7 +473,7 @@ export function useCharacter() {
     refillMag,
     rest,
     levelUp,
-    undoLast,
+    eat,
     exportJson,
     shareJson,
     importJson,
