@@ -1,28 +1,37 @@
 import { useRef, useState } from 'react';
 import { useCharacter } from './state/useCharacter';
+import { useChronicle } from './state/useChronicle';
 import { PostavaScreen } from './screens/PostavaScreen';
 import { SchopnostiScreen } from './screens/SchopnostiScreen';
 import { VybavaScreen } from './screens/VybavaScreen';
 import { BojScreen } from './screens/BojScreen';
+import { KronikaScreen } from './screens/KronikaScreen';
 import { InfoButton } from './components/InfoDialog';
 import { NewCharacterButton } from './components/NewCharacterWizard';
 
-type Tab = 'postava' | 'schopnosti' | 'vybava' | 'boj';
+type Tab = 'postava' | 'schopnosti' | 'vybava' | 'boj' | 'kronika';
 
 const TABS: Array<{ id: Tab; label: string }> = [
   { id: 'postava', label: 'Postava' },
   { id: 'schopnosti', label: 'Schopnosti' },
   { id: 'vybava', label: 'Výbava' },
   { id: 'boj', label: 'Boj' },
+  { id: 'kronika', label: 'Kronika' },
 ];
 
 export default function App() {
   const store = useCharacter();
+  const chronicle = useChronicle();
   const [tab, setTab] = useState<Tab>('boj');
   const fileInput = useRef<HTMLInputElement>(null);
 
   async function onImport(file: File | undefined) {
     if (!file) return;
+    // A kronika.json picked here by mistake is merged into the chronicle, not rejected.
+    if (await chronicle.importFile(file)) {
+      setTab('kronika');
+      return;
+    }
     try {
       await store.importJson(file);
     } catch {
@@ -64,6 +73,11 @@ export default function App() {
         {tab === 'schopnosti' && <SchopnostiScreen store={store} />}
         {tab === 'vybava' && <VybavaScreen store={store} />}
         {tab === 'boj' && <BojScreen store={store} />}
+        {tab === 'kronika' && (
+          <div className="screen">
+            <KronikaScreen store={chronicle} defaultAuthor={store.character.identity.name} />
+          </div>
+        )}
       </main>
 
       <nav className="tabs">

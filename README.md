@@ -11,6 +11,7 @@ The UI is in Czech; code and comments are in English.
 - **Schopnosti** – class abilities unlocked by level (passive, percentage-based, active with mag cost). Casters can learn and cast spells.
 - **Výbava** – inventory with weapons, ranged weapons, armour and misc items; catalog of predefined items; money in měďáky; carrying capacity and encumbrance level.
 - **Boj** – big HP counter (±1 / ±5), útočné číslo, útočné číslo na dálku (one number from the equipped ranged / thrown weapon), obranné číslo, iniciativa.
+- **Kronika** – the group's chronicle: one entry per session (date, title, text, who was PJ, who wrote it). Entries save as they are typed. It is shared as a file like the sheets are (*Poslat kroniku* / *Načíst kroniku*), but an import **merges** instead of replacing, so anyone in the group can write – see [Kronika](#kronika) below.
 - **Activity log** – last 100 changes (HP, mag, XP, money, items) with **undo** of the last 10 actions of the visit (snapshot-based, so a purchase or a level-up is reverted whole).
 - **Persistence** – auto-saved to `localStorage`, with persistent storage requested so the browser does not evict it; manual backup/restore as JSON (*Uložit zálohu* / *Načíst*).
 - **Installable** – a PWA: *Add to Home Screen* gives a full-screen app that works offline; on iOS it also exempts the sheet from Safari's 7-day storage wipe. Fonts are self-hosted (`@fontsource`), so nothing is fetched from Google.
@@ -24,7 +25,19 @@ A second page of the same build for the Dungeon Master, meant for a laptop behin
 - **Družina v boji** – one row per character with životy (coloured when wounded / vyřazen), ÚČ, OČ, iniciativa, ranged ÚČ per range band, magenergie, current postih and naložení. Sortable by name, initiative or HP.
 - **Postavy** – a read-only card per character; *Podrobnosti* unfolds vlastnosti, abilities with their % (postřeh included, for secret rolls), known spells, inventory, backstory and the latest log entries.
 
+- **Kronika družiny** – the same chronicle as in the sheet (both pages share one origin, so on one device it is literally the same data). A `kronika.json` dropped on the page together with the character files is merged into it.
+
 The party is kept in `localStorage` (`drd-sheet:party`) so it survives a reload. Re-importing a character's file replaces the old snapshot – matched by the character's stable `id`, or by name for files exported before ids existed. Nothing is ever sent anywhere: the PJ sees the numbers as of the moment the player exported the file, and asks for a new file when he wants fresh ones.
+
+## Kronika
+
+The chronicle lives in `localStorage` (`drd-sheet:chronicle`) and travels as `kronika.json`. Because several people write it and there is no server, importing a file merges it entry by entry:
+
+- entries are matched by `id`; an entry only one side has is added,
+- where both sides have it, the one with the later `updatedAt` wins as a whole (no per-field merge),
+- a deleted entry stays in the data as an emptied tombstone (`deleted: true`), so an older file from someone else cannot bring it back.
+
+The merge is idempotent and order-independent, so it does not matter who sends the file to whom or how often. The same file format is what a future live sync would push around. The file pickers tell the two file kinds apart by `kind: "kronika"`: a chronicle picked in *Načíst* or dropped on the PJ page is routed to the chronicle instead of being rejected as a broken sheet.
 
 ## Tech stack
 
@@ -67,6 +80,7 @@ src/
 │   ├── SchopnostiScreen.tsx
 │   ├── VybavaScreen.tsx
 │   ├── BojScreen.tsx
+│   ├── KronikaScreen.tsx # the group's chronicle (also a section of the PJ view)
 │   └── pj/               # read-only components of the PJ view
 │       ├── PartyTable.tsx
 │       ├── CharacterCard.tsx
@@ -75,6 +89,8 @@ src/
 │   ├── useCharacter.ts   # the store: all mutations, log, undo, persistence
 │   ├── newCharacter.ts   # Tvorba postavy: draft → complete level-1 character (pure)
 │   ├── characterFile.ts  # JSON file export, download and Web Share
+│   ├── chronicle.ts      # Kronika: entries, merge, file format (pure functions)
+│   ├── useChronicle.ts   # Kronika hook: persistence, cross-tab sync, import/share
 │   ├── party.ts          # PJ's party: merge, persistence (pure functions)
 │   ├── useParty.ts       # PJ's party hook
 │   ├── storage.ts        # navigator.storage.persist()

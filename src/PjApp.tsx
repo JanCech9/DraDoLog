@@ -1,10 +1,12 @@
 import { useRef, useState, type DragEvent } from 'react';
 import { useParty, type ImportResult } from './state/useParty';
 import { useEncounter } from './state/useEncounter';
+import { useChronicle } from './state/useChronicle';
 import { combatRows, sortRows, type Order } from './state/encounter';
 import { CharacterCard } from './screens/pj/CharacterCard';
 import { PartyTable } from './screens/pj/PartyTable';
 import { NpcForm } from './screens/pj/NpcForm';
+import { KronikaScreen } from './screens/KronikaScreen';
 import { InfoButton } from './components/InfoDialog';
 
 const ORDERS: Array<{ id: Order; label: string }> = [
@@ -24,6 +26,7 @@ function describe(result: ImportResult): string {
 export default function PjApp() {
   const { party, importFiles, remove, clear } = useParty();
   const fight = useEncounter();
+  const chronicle = useChronicle();
   const [order, setOrder] = useState<Order>('nacteni');
   const [dragging, setDragging] = useState(false);
   const [status, setStatus] = useState('');
@@ -31,7 +34,16 @@ export default function PjApp() {
 
   async function load(files: Iterable<File> | null | undefined) {
     if (!files) return;
-    setStatus(describe(await importFiles(files)));
+    // A kronika.json dropped among the sheets goes to the chronicle; the rest are characters.
+    const sheets: File[] = [];
+    const notes: string[] = [];
+    for (const file of Array.from(files)) {
+      const note = await chronicle.importFile(file);
+      if (note) notes.push(note);
+      else sheets.push(file);
+    }
+    const result = sheets.length ? describe(await importFiles(sheets)) : '';
+    setStatus([result, ...notes].filter(Boolean).join(' '));
   }
 
   function onDrop(e: DragEvent) {
@@ -150,6 +162,8 @@ export default function PjApp() {
             </p>
           </>
         )}
+
+        <KronikaScreen store={chronicle} />
       </main>
     </div>
   );
