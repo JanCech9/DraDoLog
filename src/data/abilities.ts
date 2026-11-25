@@ -9,7 +9,7 @@ export const SCHOPNOSTI: readonly SchopnostTemplate[] = [
   { id: 'presnost', name: 'Přesnost', povolani: 'bojovnik', odUrovne: 1, kind: 'pasivni', popis: 'Za 1 000 zt získaných jednou konkrétní zbraní +1 k útoku touto zbraní, po dalších 3 000 zt +2. Platí i pro střelné a vrhací zbraně.' },
   { id: 'sehranost', name: 'Sehranost', povolani: 'bojovnik', odUrovne: 1, kind: 'pasivni', popis: 'Po 4 společných výcvicích na vyšší úroveň mají sehraní válečníci +1 k útoku, útočí-li v jednom kole na téhož soupeře.' },
   { id: 'lecba-vlastnich-zraneni', name: 'Léčba vlastních zranění', povolani: 'bojovnik', odUrovne: 2, kind: 'pasivni', popis: 'Denně si vyléčíš 2 životy za každou úroveň nad první (léčení 3 životů = 1 směna, vždy alespoň 1 směna). I zranění jedem a psychickými kouzly.' },
-  { id: 'odhad-zbrane', name: 'Odhad zbraně', povolani: 'bojovnik', odUrovne: 2, kind: 'pasivni', popis: '2.–3. úroveň: po hodině zkoušení znáš SZ, útočnost a OZ zbraně. 4.–5. úroveň: stačí směna zkoušení nebo hodina pozorování cizího boje.' },
+  { id: 'odhad-zbrane', name: 'Odhad zbraně', povolani: 'bojovnik', odUrovne: 2, kind: 'pasivni', popis: '2.–3. úroveň: po hodině zkoušení znáš SZ a OZ zbraně. 4.–5. úroveň: stačí směna zkoušení nebo hodina pozorování cizího boje.' },
   { id: 'odhad-soupere', name: 'Odhad soupeře', povolani: 'bojovnik', odUrovne: 4, kind: 'pasivni', popis: 'Během boje odhadneš ÚČ, OČ nebo zranitelnost nestvůry (1 parametr za kolo, ohlas PJ předem).' },
   { id: 'vicenasobne-utoky', name: 'Vícenásobné útoky', povolani: 'bojovnik', odUrovne: 5, kind: 'pasivni', popis: 'Tváří v tvář 3 útoky za 2 kola (2 v prvním, 1 ve druhém). V rozšířeném souboji +3 k iniciativě.' },
 

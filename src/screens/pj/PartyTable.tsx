@@ -3,7 +3,7 @@ import { akce, poradi } from '../../state/encounter';
 import { derive } from '../../rules/derived';
 import { maMagenergii } from '../../rules/abilities';
 import { ZATIZENI_LABELS } from '../../rules/tables';
-import { DOSTREL_ORDER, POVOLANI_LABELS } from '../../types/character';
+import { POVOLANI_LABELS } from '../../types/character';
 import { hpTone, signed } from './format';
 
 interface Props {
@@ -25,7 +25,7 @@ export function PartyTable({ rows, onRoll, onNpcHp, onNpcRemove }: Props) {
             <th>ÚČ</th>
             <th>OČ</th>
             <th>Ini</th>
-            <th>Střelba</th>
+            <th>ÚČ na dálku</th>
             <th>Magy</th>
             <th>Postih</th>
             <th>Naložení</th>
@@ -97,7 +97,6 @@ function CharacterRow({ row, onRoll }: { row: Extract<CombatRow, { kind: 'postav
       </td>
       <td>
         <strong>{d.uc}</strong>
-        <span className="note">út {signed(d.utocnost)}</span>
       </td>
       <td>
         <strong>{d.oc}</strong>
@@ -108,10 +107,10 @@ function CharacterRow({ row, onRoll }: { row: Extract<CombatRow, { kind: 'postav
       </td>
       <IniCell row={row} onRoll={onRoll} />
       <td>
-        {d.ucStrelba ? (
+        {d.ucDalka !== undefined ? (
           <>
-            <strong>{DOSTREL_ORDER.map((k) => d.ucStrelba![k]).join(' / ')}</strong>
-            <span className="note">{d.munice !== undefined ? `munice ${d.munice}` : d.strelna?.name}</span>
+            <strong>{d.ucDalka}</strong>
+            <span className="note">{d.strelna?.name}</span>
           </>
         ) : (
           <span className="note">—</span>

@@ -1,8 +1,8 @@
 // Hody kostkou podle Poznámek (str. 21) a Tvorby postavy (str. 26–30).
-import type { Povolani, Presvedceni, Rasa, Vlastnost, Vlastnosti } from '../types/character';
+import type { Povolani, Presvedceni, Rasa, Vlastnosti } from '../types/character';
 import { VLASTNOSTI_ORDER } from '../types/character';
 import { toMedaky } from './money';
-import { OPRAVY_RASA, PRESVEDCENI_TABULKA, VLASTNOSTI_POVOLANI, VLASTNOSTI_RASA } from './tables';
+import { PRESVEDCENI_TABULKA, rozsahVlastnosti } from './tables';
 
 export function roll(sides: number): number {
   return Math.floor(Math.random() * sides) + 1;
@@ -48,14 +48,18 @@ export function rollRange(min: number, max: number): number {
   return min + Math.floor(Math.random() * (span + 1));
 }
 
-/** Range for one attribute of a given race and class (Tabulky vlastností + Tabulka oprav). */
-export function rozsahVlastnosti(rasa: Rasa, povolani: Povolani, v: Vlastnost): readonly [number, number] {
-  const zakladni = VLASTNOSTI_POVOLANI[povolani][v];
-  if (zakladni) {
-    const o = OPRAVY_RASA[rasa][v];
-    return [zakladni[0] + o, zakladni[1] + o];
-  }
-  return VLASTNOSTI_RASA[rasa][v];
+/**
+ * The dice the table rolls for a range A–B, as text ("1k6+12", "2k6−1"), by
+ * the same rule as rollRange; "" when the span fits neither k6s nor k10s.
+ */
+export function hodNaRozsah(min: number, max: number): string {
+  const span = max - min;
+  if (span <= 0) return '';
+  const sides = span % 5 === 0 ? 6 : span % 9 === 0 ? 10 : 0;
+  if (!sides) return '';
+  const n = span / (sides - 1);
+  const plus = min - n;
+  return `${n}k${sides}${plus > 0 ? `+${plus}` : plus < 0 ? `−${-plus}` : ''}`;
 }
 
 /** Roll all five attributes for a race/class as the rulebook describes. */

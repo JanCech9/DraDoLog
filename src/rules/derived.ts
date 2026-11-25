@@ -3,7 +3,6 @@
 
 import type {
   Character,
-  Dostrel,
   Item,
   Stit,
   Strelna,
@@ -13,13 +12,11 @@ import type {
   Zbran,
   Zbroj,
 } from '../types/character';
-import { DOSTREL_ORDER } from '../types/character';
 import { RASA_RYSY } from '../data/races';
 import { coinCount } from './money';
 import {
   BOJESCHOPNOST,
   BONUS_TABLE,
-  DOSTREL_MOD,
   INICIATIVA_VALECNIK_5,
   RODOVE_ZBRANE,
   ZATIZENI_BOJ,
@@ -75,13 +72,6 @@ export function equippedStit(inventory: Item[]): Stit | undefined {
   return inventory.filter(isStit).find((s) => s.equipped);
 }
 
-/** How many pieces of a given ammo template the character carries. */
-export function ammoCount(inventory: Item[], templateId: string): number {
-  return inventory
-    .filter((i) => i.templateId === templateId)
-    .reduce((sum, i) => sum + i.qty, 0);
-}
-
 /** Carried weight, coins included (every coin weighs 1 mn). */
 export function totalWeight(character: Character): number {
   const items = character.inventory.reduce((sum, item) => sum + item.weight * item.qty, 0);
@@ -119,12 +109,11 @@ export interface DerivedStats {
   rodovaZbran: boolean;
   /** Útočné číslo (melee) = SZ + bonus za sílu (+1 rodová), never below 0. */
   uc: number;
-  /** Útočnost of the melee weapon - added to damage on a hit. */
-  utocnost: number;
-  /** Ranged ÚČ per range band; undefined when no ranged weapon is equipped. */
-  ucStrelba?: Record<Dostrel, number>;
-  /** Ammo left for the equipped ranged weapon; undefined if it uses none. */
-  munice?: number;
+  /**
+   * Útočné číslo na dálku = SZ + bonus za obratnost (+1 rodová), never below 0;
+   * undefined when no ranged / thrown weapon is equipped.
+   */
+  ucDalka?: number;
   /** Kvalita zbroje used for OČ (no armour = 1). */
   kz: number;
   /** Obranné číslo = KZ + bonus za obratnost, never below 0. */
@@ -176,7 +165,6 @@ export function derive(character: Character): DerivedStats {
 
   // Souboj tváří v tvář (str. 68): ÚČ = SZ + Sil (+1 rodová), min 0.
   const uc = Math.max(0, (zbran?.sila ?? 0) + b.sil + (rodovaMelee ? 1 : 0));
-  const utocnost = zbran?.utocnost ?? 0;
 
   // Obrana (str. 72): OČ = KZ + Obr, min 0; OZ and shield go on the roll.
   const kz = zbroj?.ochrana ?? 1;
@@ -185,15 +173,9 @@ export function derive(character: Character): DerivedStats {
   const stitBlokovan = !!stit && !!zbran?.obourucni;
   const stitBonus = stit && !stitBlokovan ? stit.obrana : 0;
 
-  // Střelecký souboj (str. 74): ÚČ = SZ + Obr (+1 rodová), min 0, ± dostřel.
-  let ucStrelba: Record<Dostrel, number> | undefined;
-  if (strelna) {
-    const base = Math.max(0, strelna.sila + b.obr + (rodovaStrelba ? 1 : 0));
-    ucStrelba = Object.fromEntries(
-      DOSTREL_ORDER.map((k) => [k, base + DOSTREL_MOD[k]]),
-    ) as Record<Dostrel, number>;
-  }
-  const munice = strelna?.municeId ? ammoCount(character.inventory, strelna.municeId) : undefined;
+  // Střelecký souboj (str. 74): ÚČ = SZ + Obr (+1 rodová), min 0. Range bands
+  // and ammo are left to the table - the sheet only gives the one number.
+  const ucDalka = strelna ? Math.max(0, strelna.sila + b.obr + (rodovaStrelba ? 1 : 0)) : undefined;
 
   // Pohyblivost (str. 83).
   const pohyblivostZakladni = Math.max(1, Math.min(21, rysy.pohyblivost + b.obr + 2 * b.sil));
@@ -231,9 +213,7 @@ export function derive(character: Character): DerivedStats {
     stit,
     rodovaZbran: rodovaMelee || rodovaStrelba,
     uc,
-    utocnost,
-    ucStrelba,
-    munice,
+    ucDalka,
     kz,
     oc,
     oz,

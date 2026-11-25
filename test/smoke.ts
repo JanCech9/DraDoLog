@@ -7,6 +7,8 @@ import { KOUZLA } from '../src/data/spells';
 import { RECEPTY } from '../src/data/recipes';
 import { createCharacter } from '../src/state/defaultCharacter';
 import { proctoNeovlada } from '../src/rules/restrictions';
+import { dnyJidla, formatDny, snistDen } from '../src/rules/food';
+import type { Item } from '../src/types/character';
 
 const assert = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAIL: ' + msg); console.log('ok  ', msg); };
 
@@ -28,6 +30,19 @@ assert(d.mezVyrazeni === 2, `Krwell mez vyřazení 2 (12:8=1.5→2) got ${d.mezV
 assert(d.rodovaZbran, 'meč bastard je rodová zbraň barbara');
 assert(mezVyrazeni(13, 7) === 1 && mezVyrazeni(13, 12) === 2, 'Emanuel: mez 1 při 7 žt, 2 při 12 žt');
 assert(postihBojeschopnosti(13, { current: 3, max: 12 }) === -1 && postihBojeschopnosti(13, { current: 4, max: 12 }) === 0, 'postih pod třetinou');
+
+// ÚČ na dálku: SZ + bonus za obratnost (+1 rodová), one number - no range bands, no ammo.
+{
+  const e = createCharacter(); e.identity.rasa = 'elf'; e.identity.povolani = 'hranicar';
+  e.vlastnosti = { sil: 10, obr: 16, odl: 10, int: 12, chs: 12 };
+  assert(derive(e).ucDalka === undefined, 'bez střelné zbraně není ÚČ na dálku');
+  const luk = fromTemplate(cat.find(t => t.templateId === 'dlouhy-luk')!); (luk as any).equipped = true;
+  e.inventory = [luk];
+  const de = derive(e);
+  assert(de.ucDalka === 5 + de.bonus.obr + (de.rodovaZbran ? 1 : 0), `ÚČ na dálku = SZ 5 + Obr ${de.bonus.obr} (got ${de.ucDalka})`);
+  assert(!('utocnost' in luk) && !('dostrel' in luk) && !('municeId' in luk), 'střelná zbraň nemá útočnost, dostřel ani munici');
+  assert(!('utocnost' in mec), 'zbraň nemá útočnost');
+}
 
 // Hrun: barbar Sil 19 (+4), Obr 9 (−1) → pohyblivost 19, nosnost 480, 4× = 1920
 const h = createCharacter(); h.identity.rasa = 'barbar'; h.vlastnosti = { sil: 19, obr: 9, odl: 15, int: 10, chs: 10 };
@@ -102,6 +117,21 @@ assert(proctoNeovlada('zlodej', cat.find(x => x.templateId === 'stit')!) !== nul
   const norm = normalizeCharacter(legacy)!;
   assert(typeof norm.id === 'string' && norm.id.length > 0, 'normalize fills a missing id');
   assert(normalizeCharacter({ version: 3 }) === null, 'normalize rejects a sheet without identity');
+  assert(normalizeCharacter({ ...JSON.parse(JSON.stringify(a)), version: 5 }) === null, 'normalize rejects a newer save');
+  // v3 save: útočnost, dostřel, munice and "Výstřel" log entries are dropped on load.
+  const v3 = JSON.parse(JSON.stringify(a));
+  v3.version = 3;
+  v3.inventory = [
+    { id: 'm', kind: 'zbran', name: 'Šavle', weight: 25, qty: 1, equipped: true, sila: 4, utocnost: 2, obrana: 1, trida: 'stredni', obourucni: false, iniciativa: 0 },
+    { id: 'l', kind: 'strelna', name: 'Krátký luk', weight: 7, qty: 1, equipped: true, sila: 4, utocnost: 0, dostrel: [10, 20, 30], municeId: 'sipy', trida: 'stredni', vrhaci: false },
+    { id: 's', kind: 'ostatni', name: 'Šípy', templateId: 'sipy', weight: 2, qty: 12 },
+  ];
+  v3.log = [{ id: 'x', ts: 1, kind: 'ammo', text: 'Výstřel: Krátký luk', delta: -1, ref: 'sipy' }];
+  const v4 = normalizeCharacter(v3)!;
+  assert(v4.version === 4, 'v3 save is migrated to v4');
+  assert(v4.inventory.every((i) => !('utocnost' in i) && !('dostrel' in i) && !('municeId' in i)), 'v3 → v4 drops útočnost, dostřel, munice');
+  assert(v4.inventory.length === 3 && v4.inventory[2].qty === 12 && derive(v4).ucDalka !== undefined, 'v3 → v4 keeps the items (arrows included) and equipment');
+  assert(v4.log[0].kind === 'note' && !('ref' in v4.log[0]), 'v3 → v4 turns shot entries into notes');
   const stored = normalizeParty(JSON.parse(JSON.stringify(party)))!;
   assert(stored.members.length === 1 && stored.members[0].importedAt === 4, 'party survives a storage round-trip');
 }
@@ -130,8 +160,61 @@ assert(proctoNeovlada('zlodej', cat.find(x => x.templateId === 'stit')!) !== nul
   assert(Object.keys(newRound(e).hody).length === 0 && newRound(e).npcs.length === 2, 'new round clears rolls, keeps monsters');
 }
 
+// Tvorba postavy (str. 26–31): the wizard's builder.
+{
+  const { buildCharacter, mimoRozsah, pocatecniPenize } = await import('../src/state/newCharacter');
+  const { hodNaRozsah } = await import('../src/rules/dice');
+  assert(hodNaRozsah(13, 18) === '1k6+12' && hodNaRozsah(6, 16) === '2k6+4' && hodNaRozsah(2, 17) === '3k6−1', 'hod na rozsah: k6 by span');
+  assert(hodNaRozsah(5, 14) === '1k10+4' && hodNaRozsah(10, 10) === '', 'hod na rozsah: k10 and degenerate');
+  assert(pocatecniPenize(1) === 6000 && pocatecniPenize(6) === 11000, 'počáteční peníze (1k6+5)×10 zl');
+
+  const velke = catalogFor('B');
+  const luk = velke.find((t) => t.templateId === 'dlouhy-luk')!;
+  const sipy = velke.find((t) => t.templateId === 'sipy')!;
+  const zbroj = velke.find((t) => t.templateId === 'kozena-zbroj')!;
+  const draft = {
+    name: '  Sindor ',
+    rasa: 'elf' as const,
+    povolani: 'kouzelnik' as const,
+    presvedceni: 'zmatene-dobro' as const,
+    vlastnosti: { sil: 8, obr: 12, odl: 7, int: 16, chs: 14 },
+    hodPenize: 3,
+    purchases: [{ template: luk, qty: 1 }, { template: sipy, qty: 20 }, { template: sipy, qty: 10 }, { template: zbroj, qty: 1 }],
+  };
+  const c = buildCharacter(draft);
+  assert(c.identity.name === 'Sindor' && c.identity.uroven === 1 && c.identity.presvedceni === 'zmatene-dobro', 'identity from the draft, trimmed');
+  assert(c.hp.max === 4 && c.hp.current === 4, `kouzelník: 6 + Odl 7 (−2) = 4 životy (got ${c.hp.max})`);
+  assert(c.magenergie.max === 8 && c.magenergie.current === 8, `kouzelník Int 16 → 8 magů (got ${c.magenergie.max})`);
+  const spent = luk.price + 30 * sipy.price + zbroj.price;
+  assert(c.money === 8000 - spent, `money: (3+5)×10 zl minus purchases (got ${c.money})`);
+  assert(c.inventory.length === 3 && c.inventory.find((i) => i.templateId === 'sipy')!.qty === 30, 'stackable purchases merge');
+  assert(c.inventory.every((i) => i.kind === 'ostatni' || i.equipped), 'first weapon and armour go on at once');
+  assert(c.log[0].text.startsWith('Koupeno') && c.log[c.log.length - 1].text.startsWith('Nová postava'), 'log reads newest first');
+  assert(c.log.some((e) => e.kind === 'money' && e.delta === 8000), 'starting money is logged');
+  assert(mimoRozsah(draft).join() === 'chs', `elf kouzelník: Chs 14 is below 15–20, the rest fits (got ${mimoRozsah(draft)})`);
+
+  const chudak = buildCharacter({ ...draft, hodPenize: undefined, purchases: [] });
+  assert(chudak.money === 0 && chudak.inventory.length === 0, 'penniless start');
+}
+
 // Data integrity
 const ids = new Set<string>();
 for (const tpl of cat) { if (ids.has(tpl.templateId)) throw new Error('dup templateId ' + tpl.templateId); ids.add(tpl.templateId); }
 for (const r of RECEPTY) if (!ids.has(r.vysledekId)) throw new Error('recipe result missing: ' + r.vysledekId);
+assert(RECEPTY.every((r) => !('vyroba' in r)), 'recepty nemají dobu výroby – lučbu omezují jen magenergie a suroviny');
+// Jídlo: Najíst se ubere den, týdenní balík se rozdělí na 7 denních přídělů se stejnou váhou.
+{
+  const tyden = fromTemplate(cat.find(t => t.templateId === 'jidlo-tyden')!, 2);
+  let inv: Item[] | null = [tyden];
+  assert(dnyJidla(inv) === 14, '2 týdny jídla = 14 dní');
+  inv = snistDen(inv)!;
+  assert(dnyJidla(inv) === 13, 'po jídle 13 dní');
+  assert(inv.find(i => i.templateId === 'jidlo-tyden')!.qty === 1 && inv.find(i => i.templateId === 'jidlo-den')!.qty === 6, 'otevřený týden → 6 denních přídělů');
+  assert(inv.reduce((w, i) => w + i.weight * i.qty, 0) === 175 + 6 * 25, 'váha odpovídá zbytku jídla');
+  for (let i = 0; i < 13; i++) inv = snistDen(inv)!;
+  assert(dnyJidla(inv) === 0 && inv.length === 0, 'snědeno vše, prázdné balíky zmizí');
+  assert(snistDen(inv) === null, 'bez jídla se nenajíš');
+  assert(formatDny(1) === '1 den' && formatDny(3) === '3 dny' && formatDny(7) === '7 dní', 'skloňování dnů');
+}
+
 console.log(`ok   ${cat.length} catalog items, ${KOUZLA.length} spells, ${RECEPTY.length} recipes, ${SCHOPNOSTI.length} abilities`);

@@ -40,15 +40,15 @@ function InfoDialog({ variant, open, onClose }: { variant: InfoVariant; open: bo
   }
 
   return (
-    <dialog ref={ref} className="info" aria-labelledby="info-title" onClose={onClose} onClick={onClick}>
-      <div className="info__panel">
-        <header className="info__header">
+    <dialog ref={ref} className="dialog info" aria-labelledby="info-title" onClose={onClose} onClick={onClick}>
+      <div className="dialog__panel">
+        <header className="dialog__header">
           <h2 id="info-title">{variant === 'pj' ? 'Pohled Pána jeskyně' : 'DraDoLog'}</h2>
           <button type="button" className="chip" onClick={onClose} autoFocus>
             Zavřít
           </button>
         </header>
-        <div className="info__body">{variant === 'pj' ? <PjGuide /> : <PlayerGuide />}</div>
+        <div className="dialog__body">{variant === 'pj' ? <PjGuide /> : <PlayerGuide />}</div>
       </div>
     </dialog>
   );
@@ -68,23 +68,24 @@ function PlayerGuide() {
     <>
       <p className="info__lead">
         Digitální deník postavy pro <strong>Dračí doupě 1.6</strong> (Pravidla pro začátečníky). Je dělaný pro mobil
-        u stolu: kostky házíte normálně, deník hlídá čísla – životy, magenergii, munici, peníze a zkušenosti.
+        u stolu: kostky házíte normálně, deník hlídá čísla – životy, magenergii, peníze a zkušenosti.
       </p>
 
       <Section title="Rychlý start">
         <ol>
           <li>
-            <strong>Postava</strong> – vyplň jméno, rasu, povolání, úroveň a hozené vlastnosti.
+            <strong>Nová postava</strong> (nahoře) – krok za krokem: jméno, rasa, povolání, přesvědčení, hody na
+            vlastnosti, životy, počáteční peníze a nákup výbavy. Rasa a povolání se pak už nemění.
           </li>
           <li>
-            <strong>Výbava</strong> – přidej zbraně, zbroj a věci z katalogu (nebo vlastní) a nasaď je.
+            <strong>Výbava</strong> – dokup zbraně, zbroj a věci z katalogu (nebo vlastní) a nasaď je.
           </li>
           <li>
-            <strong>Boj</strong> – během hry už jen ťukáš: životy, magenergie, střelba.
+            <strong>Boj</strong> – během hry už jen ťukáš: životy a magenergie.
           </li>
         </ol>
         <p>
-          Útočné a obranné číslo, iniciativu, bonusy ani naložení nezapisuješ – deník je počítá sám z vlastností a
+          Útočné číslo (i na dálku), obranné číslo, iniciativu, bonusy ani naložení nezapisuješ – deník je počítá sám z vlastností a
           výbavy.
         </p>
       </Section>
@@ -92,21 +93,20 @@ function PlayerGuide() {
       <Section title="Záložky">
         <dl>
           <dt>Postava</dt>
-          <dd>Základní údaje, vlastnosti s bonusy, zkušenosti a příběh postavy.</dd>
+          <dd>Základní údaje, vlastnosti s bonusy, zkušenosti, postup na další úroveň a příběh postavy.</dd>
           <dt>Schopnosti</dt>
           <dd>Schopnosti povolání podle úrovně, šance v %, kouzla (učení a sesílání) a lučba pro alchymisty.</dd>
           <dt>Výbava</dt>
-          <dd>Inventář, munice, peníze, obchod a nosnost. Peníze se počítají v měďácích a také něco váží.</dd>
+          <dd>Inventář, peníze, obchod a nosnost. Peníze se počítají v měďácích a také něco váží.</dd>
           <dt>Boj</dt>
-          <dd>Velké počítadlo životů, ÚČ, OČ, iniciativa, střelba s odečtem munice, magenergie a odpočinek.</dd>
+          <dd>Velké počítadlo životů, ÚČ, ÚČ na dálku, OČ, iniciativa, magenergie, odpočinek a jídlo (Najíst se ubere denní příděl).</dd>
         </dl>
       </Section>
 
       <Section title="Ťukl jsem vedle">
         <p>
-          V záložce <strong>Boj</strong> dole jsou <em>Poslední změny</em>. Tlačítko{' '}
-          <strong>Vrátit poslední změnu</strong> vrátí poslední zápis – životy, magenergii, zkušenosti, peníze nebo
-          munici – a dá se mačkat i opakovaně. Deník si pamatuje posledních 100 změn.
+          Prostě to oprav opačným tlačítkem (−1 / +1). V záložce <strong>Boj</strong> dole jsou <em>Poslední změny</em>, kde
+          vidíš, co se naposledy stalo – deník si pamatuje posledních 100 zápisů.
         </p>
       </Section>
 
@@ -115,6 +115,9 @@ function PlayerGuide() {
           <li>Vše se ukládá samo, ale jen v tomto prohlížeči na tomto zařízení.</li>
           <li>
             <strong>Uložit zálohu</strong> stáhne postavu jako soubor JSON, <strong>Načíst</strong> ji z něj obnoví.
+          </li>
+          <li>
+            Deník drží jednu postavu. <strong>Nová postava</strong> tu současnou nahradí – před tím si ji ulož.
           </li>
           <li>Před výměnou telefonu nebo mazáním dat prohlížeče si zálohu udělej – jinak o postavu přijdeš.</li>
         </ul>
@@ -160,7 +163,7 @@ function PjGuide() {
         <dl>
           <dt>Družina v boji</dt>
           <dd>
-            Řádek na postavu: životy (barevně při zranění a vyřazení), ÚČ, OČ, iniciativa, střelba podle dostřelu,
+            Řádek na postavu: životy (barevně při zranění a vyřazení), ÚČ, OČ, iniciativa, ÚČ na dálku,
             magenergie, postih a naložení. Řazení přepneš v poli <strong>Pořadí</strong>.
           </dd>
           <dt>Postavy</dt>

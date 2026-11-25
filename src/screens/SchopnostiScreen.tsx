@@ -16,6 +16,7 @@ import { KOUZLA } from '../data/spells';
 import { RECEPTY } from '../data/recipes';
 import { RASA_RYSY } from '../data/races';
 import { signed } from './format';
+import { NumberInput } from '../components/NumberInput';
 
 function KouzloRadek({
   k,
@@ -60,14 +61,12 @@ function KouzloRadek({
       {known ? (
         <>
           {k.magCostPopis && (
-            <input
+            <NumberInput
               className="item__qty"
-              type="number"
-              inputMode="numeric"
               min={k.magCost}
               value={magy}
               title="Magenergie vložená do kouzla"
-              onChange={(e) => setMagy(Number(e.target.value) || k.magCost)}
+              onChange={setMagy}
             />
           )}
           <button
@@ -201,19 +200,13 @@ export function SchopnostiScreen({ store }: { store: CharacterStore }) {
           <p className="note">
             Magenergie v truhle {character.magenergie.current} / {character.magenergie.max} · peníze na suroviny{' '}
             {formatMoney(character.money)} · úspěch {Math.max(0, sanceLucby - postihLucby)} % (v boji −10 % za každého
-            nepřítele do 2 sáhů; neúspěch spotřebuje suroviny i magenergii). Hoď k% a zapiš výsledek.
+            nepřítele do 2 sáhů; neúspěch spotřebuje suroviny i magenergii). Výrobu omezují jen magenergie a suroviny – čas
+            se nepočítá. Hoď k% a zapiš výsledek.
           </p>
           <div className="field-row">
             <label className="field">
               <span>Postih k úspěchu (%)</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                step={10}
-                value={postihLucby}
-                onChange={(e) => setPostihLucby(Math.max(0, Number(e.target.value) || 0))}
-              />
+              <NumberInput min={0} step={10} value={postihLucby} onChange={setPostihLucby} />
             </label>
             <label className="field">
               <span>Hod k%</span>
@@ -236,7 +229,7 @@ export function SchopnostiScreen({ store }: { store: CharacterStore }) {
                   <span className="note">
                     {r.magCost} magů · suroviny {formatMoney(r.surovinyCena)}
                     {r.zaklad ? ` · základ ${r.zaklad}` : ''}
-                    {r.vyroba ? ` · výroba ${r.vyroba}${r.doma ? ' (jen doma)' : ''}` : ''}
+                    {r.doma ? ' · jen doma' : ''}
                     {r.trvani ? ` · trvání ${r.trvani}` : ''}
                   </span>
                   {r.popis && <span className="note">{r.popis}</span>}

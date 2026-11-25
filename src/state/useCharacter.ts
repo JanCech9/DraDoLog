@@ -7,7 +7,6 @@ import type {
   NewItem,
   Presvedceni,
   RecipeTemplate,
-  Strelna,
 } from '../types/character';
 import { PRESVEDCENI_LABELS } from '../types/character';
 import { CATALOG, findTemplate, fromTemplate, type ItemTemplate } from '../data/catalog';
@@ -17,7 +16,6 @@ import { characterToFile, downloadFile, shareFile } from './characterFile';
 import { bonus } from '../rules/derived';
 import {
   hpKostka,
-  hpZaklad,
   formatKostka,
   magenergieZTabulky,
   meditujici,
@@ -26,20 +24,12 @@ import {
 } from '../rules/abilities';
 import { hodinySpanku } from '../rules/tables';
 import { toMedaky } from '../rules/money';
+import { dnyJidla, formatDny, snistDen } from '../rules/food';
 
 const STORAGE_KEY = 'drd-sheet:character';
 type StoredCharacter = Omit<Character, 'version'> & { version: number };
 
-/** How many actions can be undone. Kept in memory only - a reload starts fresh. */
-const UNDO_DEPTH = 10;
-
-interface Timeline {
-  current: Character;
-  /** Snapshots taken right before each undoable action, newest first. */
-  past: Character[];
-}
-
-/** Mutates a draft; returning false means "nothing happened" (no state change, nothing to undo). */
+/** Mutates a draft; returning false means "nothing happened" (no state change, nothing logged). */
 type Recipe = (draft: Character) => void | false;
 
 /** Run a recipe on a copy of the character; null when the recipe declined to change anything. */
@@ -48,8 +38,8 @@ function apply(character: Character, recipe: Recipe): Character | null {
   return recipe(draft) === false ? null : draft;
 }
 
-function log(draft: Character, kind: LogKind, text: string, delta?: number, ref?: string): void {
-  draft.log.unshift({ id: newId(), ts: Date.now(), kind, text, delta, ref });
+function log(draft: Character, kind: LogKind, text: string, delta?: number): void {
+  draft.log.unshift({ id: newId(), ts: Date.now(), kind, text, delta });
   draft.log = draft.log.slice(0, 100);
 }
 
@@ -66,8 +56,8 @@ function normalizePresvedceni(value: unknown): Presvedceni {
 
 /**
  * v2 → v3: weapons used to store a single `utocnost` that acted as SZ; v3
- * splits it into sila (SZ), utocnost (út) and adds trida / obourucni. Items
- * that came from the catalog get their real numbers back from it.
+ * keeps it as sila (SZ) and adds trida / obourucni. Items that came from the
+ * catalog get their real numbers back from it.
  */
 function migrateItem(raw: Record<string, unknown>, velikost: 'A' | 'B' | 'C'): Item {
   const template = findTemplate(typeof raw.templateId === 'string' ? raw.templateId : undefined, velikost);
@@ -93,7 +83,6 @@ function migrateItem(raw: Record<string, unknown>, velikost: 'A' | 'B' | 'C'): I
         kind: 'zbran',
         equipped,
         sila: typeof raw.sila === 'number' ? raw.sila : Number(raw.utocnost) || 0,
-        utocnost: typeof raw.sila === 'number' ? Number(raw.utocnost) || 0 : 0,
         obrana: Number(raw.obrana) || 0,
         iniciativa: Number(raw.iniciativa) || 0,
         trida: raw.trida === 'lehka' || raw.trida === 'tezka' ? raw.trida : 'stredni',
@@ -105,9 +94,6 @@ function migrateItem(raw: Record<string, unknown>, velikost: 'A' | 'B' | 'C'): I
         kind: 'strelna',
         equipped,
         sila: typeof raw.sila === 'number' ? raw.sila : Number(raw.utocnost) || 0,
-        utocnost: typeof raw.sila === 'number' ? Number(raw.utocnost) || 0 : 0,
-        dostrel: Array.isArray(raw.dostrel) ? (raw.dostrel.map(Number) as [number, number, number]) : [0, 0, 0],
-        ...(typeof raw.municeId === 'string' ? { municeId: raw.municeId } : {}),
         trida: raw.trida === 'lehka' || raw.trida === 'tezka' ? raw.trida : 'stredni',
         vrhaci: raw.vrhaci === true,
       };
@@ -120,11 +106,27 @@ function migrateItem(raw: Record<string, unknown>, velikost: 'A' | 'B' | 'C'): I
   }
 }
 
+/**
+ * v3 → v4: útočnost, range bands (dostřel) and ammo tracking are gone. The
+ * stale fields are dropped from items, and "Výstřel" log entries become plain
+ * notes.
+ */
+function stripV3(c: StoredCharacter): void {
+  c.inventory = (Array.isArray(c.inventory) ? c.inventory : []).map((item) => {
+    const { utocnost: _ut, dostrel: _dostrel, municeId: _munice, ...rest } = item as Item & Record<string, unknown>;
+    return rest as Item;
+  });
+  c.log = c.log.map((entry) => {
+    const { ref: _ref, ...rest } = entry as typeof entry & { ref?: string };
+    return (rest.kind as string) === 'ammo' ? { ...rest, kind: 'note' } : rest;
+  });
+}
+
 /** Validate and migrate a stored/imported character; null when unusable. */
 export function normalizeCharacter(parsed: unknown): Character | null {
   const c = parsed as StoredCharacter | null;
   if (!c || typeof c !== 'object' || typeof c.version !== 'number') return null;
-  if (c.version > 3) return null;
+  if (c.version > 4) return null;
   if (!c.identity || typeof c.identity !== 'object') return null;
 
   if (typeof c.id !== 'string' || !c.id) c.id = newId();
@@ -143,6 +145,10 @@ export function normalizeCharacter(parsed: unknown): Character | null {
     );
     c.version = 3;
   }
+  if (c.version < 4) {
+    stripV3(c);
+    c.version = 4;
+  }
   return c as Character;
 }
 
@@ -156,11 +162,7 @@ function load(): Character | null {
 }
 
 export function useCharacter() {
-  const [timeline, setTimeline] = useState<Timeline>(() => ({
-    current: load() ?? createCharacter(),
-    past: [],
-  }));
-  const character = timeline.current;
+  const [character, setCharacter] = useState<Character>(() => load() ?? createCharacter());
 
   useEffect(() => {
     try {
@@ -171,89 +173,72 @@ export function useCharacter() {
   }, [character]);
 
   /**
-   * Edit a field (name, attributes, max HP, item quantity…). Not undoable by
-   * itself - but the edit is applied to every remembered snapshot as well, so
-   * undoing an action never throws away an edit made after it.
+   * Change the character. Actions (HP, money, spells…) log what they did; a
+   * recipe returns false when nothing happened (not enough money, no
+   * magenergie…) so that nothing changes and nothing is logged.
    */
-  const update = useCallback((recipe: (draft: Character) => void) => {
-    setTimeline((t) => ({
-      current: apply(t.current, recipe) ?? t.current,
-      past: t.past.map((c) => apply(c, recipe) ?? c),
-    }));
-  }, []);
-
-  /**
-   * Perform an undoable action: the state before it is remembered and every
-   * action logs what it did, so "undo" always reverts the top log entry.
-   * A recipe returns false when nothing happened (not enough money, no ammo…)
-   * so that there is nothing to undo and nothing in the log.
-   */
-  const act = useCallback((recipe: Recipe) => {
-    setTimeline((t) => {
-      const next = apply(t.current, recipe);
-      if (!next) return t;
-      return { current: next, past: [t.current, ...t.past].slice(0, UNDO_DEPTH) };
-    });
+  const update = useCallback((recipe: Recipe) => {
+    setCharacter((c) => apply(c, recipe) ?? c);
   }, []);
 
   const adjustHp = useCallback(
     (delta: number) =>
-      act((draft) => {
-        // Only the part of the delta that actually applied is logged (and undone).
+      update((draft) => {
+        // Only the part of the delta that actually applied is logged.
         const applied = Math.min(draft.hp.max, draft.hp.current + delta) - draft.hp.current;
         if (!applied) return false;
         draft.hp.current += applied;
         log(draft, 'hp', applied < 0 ? 'Zranění' : 'Léčení', applied);
       }),
-    [act],
+    [update],
   );
 
   const adjustMag = useCallback(
     (delta: number) =>
-      act((draft) => {
+      update((draft) => {
         const m = draft.magenergie;
         const applied = Math.max(0, Math.min(m.max, m.current + delta)) - m.current;
         if (!applied) return false;
         m.current += applied;
         log(draft, 'mag', 'Magenergie', applied);
       }),
-    [act],
+    [update],
   );
 
   const adjustXp = useCallback(
     (delta: number) =>
-      act((draft) => {
+      update((draft) => {
         const applied = Math.max(0, draft.xp + delta) - draft.xp;
         if (!applied) return false;
         draft.xp += applied;
         log(draft, 'xp', 'Zkušenosti', applied);
       }),
-    [act],
+    [update],
   );
 
+  /** Spending more than you have is refused rather than emptying the purse. */
   const adjustMoney = useCallback(
     (delta: number) =>
-      act((draft) => {
-        const applied = Math.max(0, draft.money + delta) - draft.money;
-        if (!applied) return false;
-        draft.money += applied;
-        log(draft, 'money', 'Peníze', applied);
+      update((draft) => {
+        if (!delta || draft.money + delta < 0) return false;
+        draft.money += delta;
+        log(draft, 'money', delta < 0 ? 'Utraceno' : 'Peníze', delta);
       }),
-    [act],
+    [update],
   );
 
   const addItem = useCallback(
     (item: NewItem) =>
-      act((draft) => {
+      update((draft) => {
         draft.inventory.push({ ...item, id: newId() } as Item);
         log(draft, 'note', `Přidáno: ${item.qty}× ${item.name}`);
       }),
-    [act],
+    [update],
   );
 
   const buyItem = useCallback(
     (t: ItemTemplate, qty = 1, pay = true) => {
-      act((draft) => {
+      update((draft) => {
         const cost = t.price * qty;
         if (pay && cost > 0) {
           if (draft.money < cost) return false;
@@ -267,18 +252,18 @@ export function useCharacter() {
         else draft.inventory.push(fromTemplate(t, qty));
       });
     },
-    [act],
+    [update],
   );
 
   const removeItem = useCallback(
     (id: string) =>
-      act((draft) => {
+      update((draft) => {
         const item = draft.inventory.find((i) => i.id === id);
         if (!item) return false;
         draft.inventory = draft.inventory.filter((i) => i.id !== id);
         log(draft, 'note', `Zahozeno: ${item.qty}× ${item.name}`);
       }),
-    [act],
+    [update],
   );
 
   const setQty = useCallback(
@@ -290,7 +275,7 @@ export function useCharacter() {
     [update],
   );
 
-  /** One item per kind can be worn at a time: one zbraň, one střelná, one zbroj, one štít. */
+  /** One item per kind can be worn at a time: one zbraň, one střelná / vrhací, one zbroj, one štít. */
   const toggleEquipped = useCallback(
     (id: string) =>
       update((draft) => {
@@ -305,32 +290,16 @@ export function useCharacter() {
     [update],
   );
 
-  /** Fire the equipped ranged weapon: uses one piece of its ammo. */
-  const shoot = useCallback(
-    () =>
-      act((draft) => {
-        const weapon = draft.inventory.find(
-          (i): i is Strelna => i.kind === 'strelna' && i.equipped,
-        );
-        if (!weapon?.municeId) return false;
-        const ammo = draft.inventory.find((i) => i.templateId === weapon.municeId && i.qty > 0);
-        if (!ammo) return false;
-        ammo.qty -= 1;
-        log(draft, 'ammo', `Výstřel: ${weapon.name}`, -1, weapon.municeId);
-      }),
-    [act],
-  );
-
   /** Cast a spell; `magy` overrides the cost for spells with variable magenergie. */
   const castSpell = useCallback(
     (k: KouzloTemplate, magy?: number) =>
-      act((draft) => {
+      update((draft) => {
         const cost = Math.max(k.magCost, magy ?? k.magCost);
         if (draft.magenergie.current < cost) return false;
         draft.magenergie.current -= cost;
         log(draft, 'mag', `Seslal: ${k.name}`, -cost);
       }),
-    [act],
+    [update],
   );
 
   const learnSpell = useCallback(
@@ -356,7 +325,7 @@ export function useCharacter() {
    */
   const brew = useCallback(
     (r: RecipeTemplate, hod: number, postih = 0) =>
-      act((draft) => {
+      update((draft) => {
         if (hod < 1 || hod > 100) return false;
         if (draft.magenergie.current < r.magCost || draft.money < r.surovinyCena) return false;
         const velikost = RASA_RYSY[draft.identity.rasa].velikost;
@@ -387,38 +356,26 @@ export function useCharacter() {
           );
         }
       }),
-    [act],
+    [update],
   );
 
   /** Refill magenergie to the class table's value (kouzelník, hraničář) or set the max (alchymista). */
   const refillMag = useCallback(
     () =>
-      act((draft) => {
+      update((draft) => {
         const max = magenergieZTabulky(draft);
         if (draft.magenergie.max === max && draft.magenergie.current === max) return false;
         draft.magenergie.max = max;
         draft.magenergie.current = max;
         log(draft, 'note', `Magenergie nastavena podle tabulky: ${max} magů`);
       }),
-    [act],
-  );
-
-  /** Životy nové postavy na 1. úrovni (str. 27): základ povolání + bonus za odolnost, nejméně 1. */
-  const pocatecniZivoty = useCallback(
-    () =>
-      act((draft) => {
-        const hp = Math.max(1, hpZaklad(draft.identity.povolani) + bonus(draft.vlastnosti.odl));
-        if (draft.hp.current === hp && draft.hp.max === hp) return false;
-        draft.hp = { current: hp, max: hp };
-        log(draft, 'note', `Počáteční životy: ${hp}`);
-      }),
-    [act],
+    [update],
   );
 
   /** Důkladný odpočinek (str. 85): +2 životy, meditující povolání získají magenergii. */
   const rest = useCallback(
     () =>
-      act((draft) => {
+      update((draft) => {
         const hodiny = hodinySpanku(bonus(draft.vlastnosti.odl));
         const gain = Math.min(2, draft.hp.max - draft.hp.current);
         if (gain > 0) {
@@ -433,7 +390,19 @@ export function useCharacter() {
           if (delta) log(draft, 'mag', draft.identity.povolani === 'kouzelnik' ? 'Zaostření vůle' : 'Meditace', delta);
         }
       }),
-    [act],
+    [update],
+  );
+
+  /** Eat one day's ration from the backpack, opening a week pack when needed. */
+  const eat = useCallback(
+    () =>
+      update((draft) => {
+        const inventory = snistDen(draft.inventory);
+        if (!inventory) return false;
+        draft.inventory = inventory;
+        log(draft, 'note', `Najedl se (jídlo ještě na ${formatDny(dnyJidla(inventory))})`);
+      }),
+    [update],
   );
 
   /**
@@ -443,7 +412,7 @@ export function useCharacter() {
    */
   const levelUp = useCallback(
     (payTraining: boolean, hod: number) =>
-      act((draft) => {
+      update((draft) => {
         const info = urovenInfo(draft);
         const cost = toMedaky({ zl: info.cena ?? 0 });
         if (payTraining && cost > 0) {
@@ -458,16 +427,8 @@ export function useCharacter() {
         draft.hp.current += gain;
         log(draft, 'hp', `Postup na ${draft.identity.uroven}. úroveň (${formatKostka(k)} = ${hod})`, gain);
       }),
-    [act],
+    [update],
   );
-
-  /** Restore the snapshot taken before the last action - log entry included. */
-  const undoLast = useCallback(() => {
-    setTimeline((t) => {
-      const [previous, ...past] = t.past;
-      return previous ? { current: previous, past } : t;
-    });
-  }, []);
 
   const exportJson = useCallback(() => {
     downloadFile(characterToFile(character));
@@ -479,17 +440,22 @@ export function useCharacter() {
     [character],
   );
 
-  const importJson = useCallback(async (file: File) => {
-    const parsed = normalizeCharacter(JSON.parse(await file.text()));
-    if (!parsed) throw new Error('Nepodporovaný formát souboru.');
-    // A different character: snapshots of the old one would make no sense to restore.
-    setTimeline({ current: parsed, past: [] });
+  /** Swap in a different character (a freshly created one, or one loaded from a file). */
+  const replaceCharacter = useCallback((next: Character) => {
+    setCharacter(next);
   }, []);
+
+  const importJson = useCallback(
+    async (file: File) => {
+      const parsed = normalizeCharacter(JSON.parse(await file.text()));
+      if (!parsed) throw new Error('Nepodporovaný formát souboru.');
+      replaceCharacter(parsed);
+    },
+    [replaceCharacter],
+  );
 
   return {
     character,
-    /** True while there is an action of this visit to undo. */
-    canUndo: timeline.past.length > 0,
     update,
     adjustHp,
     adjustMag,
@@ -500,19 +466,18 @@ export function useCharacter() {
     removeItem,
     setQty,
     toggleEquipped,
-    shoot,
     castSpell,
     learnSpell,
     forgetSpell,
     brew,
     refillMag,
-    pocatecniZivoty,
     rest,
     levelUp,
-    undoLast,
+    eat,
     exportJson,
     shareJson,
     importJson,
+    replaceCharacter,
   };
 }
 
