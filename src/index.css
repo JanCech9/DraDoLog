@@ -115,7 +115,8 @@ body {
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
   padding: 0.5rem 0.6rem;
   background: rgba(255, 255, 255, 0.04);
@@ -127,6 +128,7 @@ select {
 
 input:focus-visible,
 select:focus-visible,
+textarea:focus-visible,
 button:focus-visible {
   outline: 2px solid var(--verdigris);
   outline-offset: 1px;
@@ -405,6 +407,109 @@ button:disabled {
   color: var(--verdigris);
 }
 
+/* --- kronika (the sheet's tab and a section of the PJ view) --- */
+
+.status {
+  color: var(--verdigris);
+}
+
+.kronika {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  /* the PJ view is wide; a chronicle reads best in a column */
+  max-width: 44rem;
+}
+
+.kronika__bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.kronika__bar .heading {
+  margin-top: 0;
+  border-bottom: none;
+}
+
+.kronika__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-bottom: 0.35rem;
+}
+
+.kronika__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.zapis {
+  border-bottom: 1px solid var(--line);
+}
+
+/* the whole header row is the tap target that unfolds the entry */
+.zapis__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: 100%;
+  padding: 0.7rem 0;
+  border: none;
+  border-radius: 0;
+  text-align: left;
+}
+
+.zapis__date {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.zapis__title {
+  font-family: var(--serif);
+  font-size: 1.2rem;
+}
+
+.zapis__head[aria-expanded='true'] .zapis__title {
+  color: var(--verdigris);
+}
+
+.zapis__body,
+.zapis__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-bottom: 0.9rem;
+}
+
+.zapis__form {
+  padding-top: 0.75rem;
+}
+
+.zapis__text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+
+/* its own row: a Czech date ("25. 11. 2026") needs the width on a phone */
+.zapis__date-field {
+  flex: none;
+  max-width: 13rem;
+}
+
+.zapis__actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
 /* --- tabs --- */
 
 .tabs {
@@ -419,10 +524,11 @@ button:disabled {
 }
 
 .tabs__tab {
-  flex: 1;
+  /* sized by its label, the spare room shared out - five equal columns are too narrow for "Schopnosti" on a phone */
+  flex: 1 1 auto;
   border: none;
   border-radius: 0;
-  padding: 0.9rem 0;
+  padding: 0.9rem 0.2rem;
   color: var(--muted);
   font-family: var(--serif);
   font-size: 1.05rem;

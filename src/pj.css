@@ -36,10 +36,6 @@
   font-size: 0.85rem;
 }
 
-.status {
-  color: var(--verdigris);
-}
-
 /* --- empty state / drop target --- */
 
 .dropzone {
@@ -270,4 +266,9 @@
   display: flex;
   gap: 0.4rem;
   margin-top: 0.25rem;
+}
+
+/* the chronicle is the last section of the page */
+.app--pj .kronika {
+  margin-top: 1.5rem;
 }

@@ -8,6 +8,10 @@ import { RECEPTY } from '../src/data/recipes';
 import { createCharacter } from '../src/state/defaultCharacter';
 import { proctoNeovlada } from '../src/rules/restrictions';
 import { dnyJidla, formatDny, snistDen } from '../src/rules/food';
+import {
+  addEntry, createEntry, describeMerge, emptyChronicle, formatDay, knownNames, mergeChronicles,
+  normalizeChronicle, removeEntry, updateEntry, visibleEntries,
+} from '../src/state/chronicle';
 import type { Item } from '../src/types/character';
 
 const assert = (cond: unknown, msg: string) => { if (!cond) throw new Error('FAIL: ' + msg); console.log('ok  ', msg); };
@@ -215,6 +219,46 @@ assert(RECEPTY.every((r) => !('vyroba' in r)), 'recepty nemají dobu výroby –
   assert(dnyJidla(inv) === 0 && inv.length === 0, 'snědeno vše, prázdné balíky zmizí');
   assert(snistDen(inv) === null, 'bez jídla se nenajíš');
   assert(formatDny(1) === '1 den' && formatDny(3) === '3 dny' && formatDny(7) === '7 dní', 'skloňování dnů');
+}
+
+// Kronika: two people write on their own devices, files are merged by entry id, newer edit wins.
+{
+  const t0 = Date.UTC(2026, 10, 21, 18);
+  const prvni = createEntry({ title: 'Noc v hvozdu', date: '2026-11-07', author: 'Bran', pj: 'Olda' }, t0);
+  const moje = addEntry(emptyChronicle(), prvni);
+  assert(moje.entries[0].createdAt === t0 && moje.entries[0].updatedAt === t0, 'nový zápis má čas vzniku i úpravy');
+
+  // The other player got my file, fixed the title and added a later session.
+  const druhy = createEntry({ title: 'Důl pod Skalicí', date: '2026-11-21', author: 'Olda', pj: 'Bran' }, t0 + 2000);
+  const jeho = addEntry(updateEntry(moje, prvni.id, { title: 'Noc v Mlžném hvozdu' }, t0 + 1000), druhy);
+
+  const m = mergeChronicles(moje, jeho);
+  assert(m.added === 1 && m.updated === 1 && m.removed === 0, `sloučení: 1 nový, 1 upravený (got ${m.added}/${m.updated}/${m.removed})`);
+  assert(visibleEntries(m.chronicle).map((e) => e.title).join('|') === 'Důl pod Skalicí|Noc v Mlžném hvozdu', 'nejnovější sezení je nahoře');
+  assert(describeMerge(m) === 'Kronika: 1 nový zápis, 1 upravený.', `popis sloučení (got ${describeMerge(m)})`);
+
+  const znovu = mergeChronicles(m.chronicle, jeho);
+  assert(znovu.chronicle === m.chronicle && znovu.added + znovu.updated + znovu.removed === 0, 'stejný soubor podruhé nic nezmění (stejný objekt)');
+  assert(mergeChronicles(m.chronicle, moje).chronicle === m.chronicle, 'starší kopie novější úpravu nepřepíše');
+
+  // A delete is a tombstone: it wins over the older live copy and does not come back.
+  const smazano = removeEntry(m.chronicle, druhy.id, t0 + 3000);
+  assert(visibleEntries(smazano).length === 1 && smazano.entries.length === 2, 'smazaný zápis zmizí ze seznamu, náhrobek zůstane');
+  const uNej = mergeChronicles(jeho, smazano);
+  assert(uNej.removed === 1 && visibleEntries(uNej.chronicle).length === 1, 'smazání se sloučením přenese k ostatním');
+  assert(mergeChronicles(smazano, jeho).chronicle === smazano, 'starý soubor smazaný zápis nevzkřísí');
+  assert(updateEntry(smazano, druhy.id, { title: 'x' }).entries.find((e) => e.id === druhy.id)!.title === '', 'smazaný zápis nejde upravit');
+
+  // File round-trip and rejects.
+  const zpet = normalizeChronicle(JSON.parse(JSON.stringify(smazano)))!;
+  assert(JSON.stringify(zpet) === JSON.stringify(smazano), 'kronika přežije uložení a načtení beze změny');
+  assert(normalizeChronicle(createCharacter()) === null, 'soubor postavy není kronika');
+  assert(normalizeChronicle({ kind: 'kronika', version: 2, entries: [] }) === null, 'novější verzi kroniky odmítne');
+  const spravena = normalizeChronicle({ kind: 'kronika', version: 1, entries: [{ id: 'a', date: 'včera', updatedAt: t0 }, { id: 'a' }, { title: 'bez id' }, null] })!;
+  assert(spravena.entries.length === 1 && /^\d{4}-\d{2}-\d{2}$/.test(spravena.entries[0].date) && spravena.entries[0].text === '', 'poškozené zápisy: duplicity a bez id pryč, špatné datum opraveno');
+
+  assert(knownNames(m.chronicle).join() === 'Bran,Olda', 'jména pro našeptávač bez duplicit');
+  assert(formatDay('2026-11-21') === '21. listopadu 2026', `datum česky (got ${formatDay('2026-11-21')})`);
 }
 
 console.log(`ok   ${cat.length} catalog items, ${KOUZLA.length} spells, ${RECEPTY.length} recipes, ${SCHOPNOSTI.length} abilities`);

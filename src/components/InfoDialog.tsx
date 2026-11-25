@@ -100,6 +100,8 @@ function PlayerGuide() {
           <dd>Inventář, peníze, obchod a nosnost. Peníze se počítají v měďácích a také něco váží.</dd>
           <dt>Boj</dt>
           <dd>Velké počítadlo životů, ÚČ, ÚČ na dálku, OČ, iniciativa, magenergie, odpočinek a jídlo (Najíst se ubere denní příděl).</dd>
+          <dt>Kronika</dt>
+          <dd>Společné zápisy ze sezení – co se stalo, kdo vedl hru a kdo to sepsal.</dd>
         </dl>
       </Section>
 
@@ -128,6 +130,14 @@ function PlayerGuide() {
           <strong>Poslat PJ</strong> otevře sdílení telefonu (Messenger, WhatsApp, e-mail…) se souborem postavy. Kde
           sdílení nejde, soubor se jen stáhne. PJ si ho načte v <a href="./pj.html">pohledu Pána jeskyně</a>. Nic se
           neposílá samo – PJ vidí čísla z chvíle, kdy jsi soubor poslal.
+        </p>
+      </Section>
+
+      <Section title="Kronika družiny">
+        <p>
+          Zápis se ukládá sám už při psaní. <strong>Poslat kroniku</strong> ji pošle ostatním jako soubor,{' '}
+          <strong>Načíst kroniku</strong> cizí soubor sloučí s tvou kronikou: nové zápisy přibudou, u stejného zápisu
+          vyhraje novější úprava a smazané zmizí. Nic se nepřepisuje celé, takže psát může kdokoli z družiny.
         </p>
       </Section>
 
@@ -170,6 +180,11 @@ function PjGuide() {
           <dd>
             Karta každé postavy. <strong>Podrobnosti</strong> ukážou vlastnosti, schopnosti s % (včetně postřehu pro
             tajné hody), kouzla, výbavu, příběh a poslední změny.
+          </dd>
+          <dt>Kronika družiny</dt>
+          <dd>
+            Stejná kronika jako v deníku hráče – tady se pohodlně píše na klávesnici. Soubor <em>kronika.json</em>{' '}
+            stačí přetáhnout na stránku spolu s postavami; zápisy se sloučí.
           </dd>
         </dl>
       </Section>
